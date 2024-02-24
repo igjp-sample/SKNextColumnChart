@@ -1,0 +1,31 @@
+{
+  "name": "igc-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --mode development --open",
+    "build": "webpack --mode production"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "copy-webpack-plugin": "^12.0.2",
+    "css-loader": "^6.7.3",
+    "style-loader": "^3.3.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.76.3",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.13.1"
+  },
+  "dependencies": {
+    "@infragistics/igniteui-webcomponents-charts": "4.7.1",
+    "@infragistics/igniteui-webcomponents-core": "^4.7.1",
+    "@lit/reactive-element": "1.6.1",
+    "@webcomponents/custom-elements": "^1.5.1",
+    "igniteui-webcomponents": "^4.7.0",
+    "lit-html": "^2.0.0"
+  }
+}
