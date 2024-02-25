@@ -4,7 +4,7 @@ export class HighestGrossingMoviesItem {
     }
 
     public franchise: string = '';
-    public totalRevenue: number = 0;
+    public newSales: number = 0;
 
 }
 export class HighestGrossingMovies extends Array<HighestGrossingMoviesItem> {
@@ -15,36 +15,31 @@ export class HighestGrossingMovies extends Array<HighestGrossingMoviesItem> {
             const newItems = [
                 new HighestGrossingMoviesItem(
                 {
-                    franchise: `Marvel Universe`,
-                    totalRevenue: 22.55,
+                    franchise: `Product A`,
+                    newSales: 8322064,
                 }),
                 new HighestGrossingMoviesItem(
                 {
-                    franchise: `Star Wars`,
-                    totalRevenue: 10.32,
+                    franchise: `Product B`,
+                    newSales: 6485362,
                 }),
                 new HighestGrossingMoviesItem(
                 {
-                    franchise: `Harry Potter`,
-                    totalRevenue: 9.19,
+                    franchise: `Product C`,
+                    newSales: 7281442,
                 }),
                 new HighestGrossingMoviesItem(
                 {
-                    franchise: `Avengers`,
-                    totalRevenue: 7.76,
+                    franchise: `Product D`,
+                    newSales: 7619920,
                 }),
                 new HighestGrossingMoviesItem(
                 {
-                    franchise: `Spider Man`,
-                    totalRevenue: 7.22,
-                }),
-                new HighestGrossingMoviesItem(
-                {
-                    franchise: `James Bond`,
-                    totalRevenue: 7.12,
-                }),
+                    franchise: `Product E`,
+                    newSales: 8405241,
+                })
             ];
-            super(...(newItems.slice(0, items)));
+            super(...(newItems));
         }
     }
 }

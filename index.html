@@ -10,30 +10,47 @@
 
   <body class="ig-typography" id="root">
     <div class="container">
-      <div class="legend-title">
-        Highest Grossing Movie Franchises
-      </div>
 
       <div class="legend">
         <igc-legend
-        name="Legend"
-        id="Legend"
-        orientation="Horizontal">
+          name="Legend"
+          id="Legend"
+          orientation="Horizontal">
         </igc-legend>
       </div>
 
       <div class="container fill">
-        <igc-category-chart
-          name="chart"
-          id="chart"
-          chart-type="Column"
-          x-axis-interval="1"
-          y-axis-label-left-margin="0"
-          is-horizontal-zoom-enabled="false"
-          is-vertical-zoom-enabled="false"
-          is-category-highlighting-enabled="true"
-          crosshairs-display-mode="None">
-        </igc-category-chart>
+        <igc-data-chart
+          name="Chart"
+          plot-area-margin-bottom="5"
+          highlighting-mode="FadeOthersSpecific"
+          id="Chart">
+          <igc-category-x-axis
+            name="xAxis"
+            id="xAxis"
+            label="franchise"
+            gap="0.4"
+          >
+          </igc-category-x-axis>
+          <igc-numeric-y-axis
+            name="yAxis"
+            id="yAxis"
+            minimum-value="0"
+            maximum-value="9000000"
+            use-enhanced-interval-management="true"
+          >
+          </igc-numeric-y-axis>
+          <igc-column-series
+            name="ColumnSeries"
+            id="ColumnSeries"
+            title="New Sales"
+            brush="#5a8cc9"
+            outline="#5a8cc9"
+            is-highlighting-enabled="true"
+            should-hide-auto-callouts="false"
+            value-member-path="newSales">
+          </igc-column-series>
+        </igc-data-chart>
       </div>
     </div>
     <script src="index.bundle.js"></script>
