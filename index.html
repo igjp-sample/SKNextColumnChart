@@ -11,19 +11,32 @@
   <body class="ig-typography" id="root">
     <div class="container">
 
-      <div class="legend">
-        <igc-legend
-          name="Legend"
-          id="Legend"
-          orientation="Horizontal">
-        </igc-legend>
+      <div class="aboveContentSplit">
+        <div class="aboveContentLeftContainer">
+            <igc-legend
+              name="Legend"
+              id="Legend"
+              orientation="Horizontal">
+            </igc-legend>
+        </div>
+        <div class="aboveContentRightContainer">
+          <igc-toolbar
+            name="Toolbar"
+            id="Toolbar"
+            orientation="Horizontal">
+            <igc-tool-action-icon-button
+              icon-name="CustomIcon"
+              icon-collection-name="CustomCollection">
+            </igc-tool-icon-button>
+          </igc-toolbar>
+        </div>
       </div>
 
       <div class="container fill">
         <igc-data-chart
           name="Chart"
           plot-area-margin-bottom="5"
-          highlighting-mode="FadeOthersSpecific"
+          highlighting-mode="None"
           id="Chart">
           <igc-category-x-axis
             name="xAxis"

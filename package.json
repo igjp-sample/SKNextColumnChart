@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "webpack - config webpack.config.dev.js",
     "start": "webpack serve --mode development --open",
     "build": "webpack --mode production"
   },
@@ -18,11 +19,12 @@
     "typescript": "^5.3.3",
     "webpack": "^5.76.3",
     "webpack-cli": "^5.0.1",
-    "webpack-dev-server": "^4.13.1"
+    "webpack-dev-server": "^4.15.1"
   },
   "dependencies": {
-    "@infragistics/igniteui-webcomponents-charts": "4.7.1",
+    "@infragistics/igniteui-webcomponents-charts": "^4.7.1",
     "@infragistics/igniteui-webcomponents-core": "^4.7.1",
+    "@infragistics/igniteui-webcomponents-layouts": "^4.7.1",
     "@lit/reactive-element": "1.6.1",
     "@webcomponents/custom-elements": "^1.5.1",
     "igniteui-webcomponents": "^4.7.0",
