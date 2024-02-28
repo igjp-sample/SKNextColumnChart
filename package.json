@@ -25,6 +25,7 @@
     "@infragistics/igniteui-webcomponents-charts": "^4.7.1",
     "@infragistics/igniteui-webcomponents-core": "^4.7.1",
     "@infragistics/igniteui-webcomponents-layouts": "^4.7.1",
+    "@infragistics/igniteui-webcomponents-inputs": "^4.7.1",
     "@lit/reactive-element": "1.6.1",
     "@webcomponents/custom-elements": "^1.5.1",
     "igniteui-webcomponents": "^4.7.0",

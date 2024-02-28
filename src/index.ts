@@ -12,9 +12,10 @@ import {
     IgcDataChartAnnotationModule,
     IgcDataChartVerticalCategoryModule,
     IgcAnnotationLayerProxyModule,
-    IgcCategoryChartToolbarModule
+    IgcDataChartToolbarModule,
+    IgcDataChartCategoryTrendLineModule,
 } from '@infragistics/igniteui-webcomponents-charts';
-import { IgcToolbarModule } from '@infragistics/igniteui-webcomponents-layouts';
+import { IgcToolbarModule, IgcToolActionLabelModule } from '@infragistics/igniteui-webcomponents-layouts';
 import {
     IgcColumnSeriesComponent,
     IgcLegendComponent,
@@ -23,9 +24,9 @@ import {
     IgcNumericYAxisComponent,
     IgcDataToolTipLayerComponent,
     IgcSeriesViewerComponent,
-    IgcCategorySeriesComponent
+    IgcCategorySeriesComponent,
 } from '@infragistics/igniteui-webcomponents-charts';
-import { IgcToolbarComponent } from '@infragistics/igniteui-webcomponents-layouts';
+import { IgcToolbarComponent,IgcToolActionIconMenuComponent,IgcToolActionCheckboxComponent,IgcToolActionLabelComponent } from '@infragistics/igniteui-webcomponents-layouts';
 import {
     IgcAssigningCategoryStyleEventArgs,
     IgcDataChartMouseButtonEventArgs,
@@ -40,18 +41,21 @@ ModuleManager.register(
     IgcDataChartCategoryModule,
     IgcDataChartCategoryCoreModule,
     IgcDataChartInteractivityModule,
+    IgcDataChartCategoryTrendLineModule,
     IgcDataChartVerticalCategoryModule,
     IgcValueOverlayModule,
     IgcDataChartAnnotationModule,
     IgcAnnotationLayerProxyModule,
     IgcToolbarModule,
-    IgcCategoryChartToolbarModule
+    IgcDataChartToolbarModule,
+    IgcToolActionLabelModule,
 );
 
 export class SKNextColumnChart {
 
     private legend: IgcLegendComponent
     private toolbar: IgcToolbarComponent
+    private analyzeMenu: IgcToolActionIconMenuComponent
     private chart: IgcDataChartComponent
     private xAxis: IgcCategoryXAxisComponent
     private yAxis: IgcNumericYAxisComponent
@@ -65,6 +69,7 @@ export class SKNextColumnChart {
 
         var legend = this.legend = document.getElementById('Legend') as unknown as IgcLegendComponent;
         var toolbar = this.toolbar = document.getElementById('Toolbar') as IgcToolbarComponent;
+        var analyzeMenu = this.analyzeMenu = document.getElementById('AnalyzeMenu') as IgcToolActionIconMenuComponent;
         var chart = this.chart = document.getElementById('Chart') as unknown as IgcDataChartComponent;
         var yAxis = this.yAxis = document.getElementById('yAxis') as unknown as IgcNumericYAxisComponent;
         var xAxis = this.xAxis = document.getElementById('xAxis') as unknown as IgcCategoryXAxisComponent
@@ -73,6 +78,7 @@ export class SKNextColumnChart {
         //var pointSeries = this.pointSeries = document.getElementById('PointSeries') as IgcPointSeriesComponent;
         this.chart.highlightedValuesDisplayMode = 1;
         this._bind = () => {
+            toolbar.target = this.chart;
             chart.legend = this.legend;
             xAxis.dataSource = this.highestGrossingMovies;
             xAxis.tickLength = 0;

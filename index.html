@@ -24,10 +24,26 @@
             name="Toolbar"
             id="Toolbar"
             orientation="Horizontal">
-            <igc-tool-action-icon-button
-              icon-name="CustomIcon"
-              icon-collection-name="CustomCollection">
-            </igc-tool-icon-button>
+
+            <igc-tool-action-label
+                name="ZoomResetHidden"
+                id="ZoomResetHidden"
+                overlay-id="ZoomReset"
+                visibility="Collapsed">
+            </igc-tool-action-label>
+            <igc-tool-action-label
+              name="CopyAsImageHidden"
+              id="CopyAsImageHidden"
+              overlay-id="CopyAsImage"
+              visibility="Collapsed">
+            </igc-tool-action-label>
+            <igc-tool-action-label
+            name="CustomMenu"
+            id="CustomMenu"
+            title="Enable Tooltips"
+            after-id="CopyAsImage"
+            >
+            </igc-tool-action-label>
           </igc-toolbar>
         </div>
       </div>

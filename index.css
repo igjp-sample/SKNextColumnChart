@@ -434,7 +434,6 @@ table {
     flex-direction: row;
 }
 .aboveContentLeftContainer {
-    margin-left: 1.25rem;
     display: flex;
     flex-grow: 1;
     justify-content: flex-start;
