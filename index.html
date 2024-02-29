@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <link rel="stylesheet" href="index.css" />
+    <script src="./assets/reveal/reveal.bridge.js"></script>
   </head>
 
   <body class="ig-typography" id="root">
@@ -24,26 +25,31 @@
             name="Toolbar"
             id="Toolbar"
             orientation="Horizontal">
-
+            <!-- hide a default zoom reset button -->
+            <igc-tool-action-label overlay-id="ZoomReset" visibility="Collapsed"></igc-tool-action-label>
+            <!-- hide a default zoom menu -->
+            <igc-tool-action-icon-menu overlay-id="ZoomMenu" visibility="Collapsed"></igc-tool-action-icon-menu>
+            <!-- hide a contents inside a analyze menu -->
+            <!-- <igc-tool-action-label overlay-id="ValueLabelsMenu" visibility="Collapsed"></igc-tool-action-label> -->
+            <igc-tool-action-label overlay-id="LinesMenu" visibility="Collapsed"></igc-tool-action-label>
+            <igc-tool-action-label overlay-id="TrendsMenu" visibility="Collapsed"></igc-tool-action-label>
+            <igc-tool-action-label overlay-id="AnalyzeHeader" visibility="Collapsed"></igc-tool-action-label>
+            <igc-tool-action-label overlay-id="ValueLabelsMenu" visibility="Collapsed"></igc-tool-action-label>
+            <igc-tool-action-checkbox overlay-id="ShowCrosshairs" visibility="Collapsed"></igc-tool-action-checkbox>
+            <igc-tool-action-checkbox overlay-id="ShowGridlines" visibility="Collapsed"></igc-tool-action-checkbox>
+            <!-- hide a copy as image function -->
+            <igc-tool-action-label overlay-id="CopyAsImage" visibility="Collapsed"></igc-tool-action-label>
+            <!-- change content of copy -->
+            <igc-tool-action-label overlay-id="CopyHeader" title="戦略会議NEXT機能"></igc-tool-action-label>
+            <igc-tool-action-icon-menu
+              icon-name="NextIcon"
+              icon-collection-name="CustomCollection"
+              overlay-id="CopyMenu"></igc-tool-action-icon-menu>
             <igc-tool-action-label
-                name="ZoomResetHidden"
-                id="ZoomResetHidden"
-                overlay-id="ZoomReset"
-                visibility="Collapsed">
-            </igc-tool-action-label>
-            <igc-tool-action-label
-              name="CopyAsImageHidden"
-              id="CopyAsImageHidden"
-              overlay-id="CopyAsImage"
-              visibility="Collapsed">
-            </igc-tool-action-label>
-            <igc-tool-action-label
-            name="CustomMenu"
-            id="CustomMenu"
-            title="Enable Tooltips"
-            after-id="CopyAsImage"
-            >
-            </igc-tool-action-label>
+              name="CustomMenu"
+              title="NEXT会員登録"
+              command-id="GetSelectedData"
+              after-id="CopyAsImage"></igc-tool-action-label>
           </igc-toolbar>
         </div>
       </div>
@@ -53,11 +59,13 @@
           name="Chart"
           plot-area-margin-bottom="5"
           highlighting-mode="None"
+          grid-mode="BehindSeries"
           id="Chart">
           <igc-category-x-axis
             name="xAxis"
             id="xAxis"
-            label="franchise"
+            label="category"
+            label-top-margin="10"
             gap="0.4"
           >
           </igc-category-x-axis>
@@ -65,20 +73,38 @@
             name="yAxis"
             id="yAxis"
             minimum-value="0"
-            maximum-value="9000000"
             use-enhanced-interval-management="true"
           >
           </igc-numeric-y-axis>
           <igc-column-series
             name="ColumnSeries"
             id="ColumnSeries"
-            title="New Sales"
+            title=""
+            marker-type="Hidden"
             brush="#5a8cc9"
             outline="#5a8cc9"
-            is-highlighting-enabled="true"
+            is-highlighting-enabled="false"
             should-hide-auto-callouts="false"
-            value-member-path="newSales">
+            value-member-path="value">
           </igc-column-series>
+          <igc-callout-layer
+            name="CalloutLayer"
+            id="CalloutLayer"
+            label-member-path="category"
+            is-auto-callout-behavior-enabled="true"
+            callout-leader-brush="rgba(0, 0, 0, 0)"
+            callout-stroke-thickness="0"
+            callout-background="rgba(90, 140, 201, 0.5)"
+            callout-text-color="#000000"
+            callout-collision-mode="Greedy"
+            callout-corner-radius="3"
+          ></igc-callout-layer>
+          <igc-crosshair-layer
+            id="crosshairLayer"
+            brush="#d9d9d9"
+            thickness="3"
+            horizontal-line-visibility="Collapsed"
+          ></igc-crosshair-layer>
         </igc-data-chart>
       </div>
     </div>
