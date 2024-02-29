@@ -38,6 +38,7 @@ import {
 import { IgcToolCommandEventArgs } from '@infragistics/igniteui-webcomponents-layouts';
 import { IgcValueOverlayModule } from '@infragistics/igniteui-webcomponents-charts';
 import { DataTemplateRenderInfo, DataTemplateMeasureInfo, ModuleManager } from '@infragistics/igniteui-webcomponents-core';
+import { themeSymbol } from 'igniteui-webcomponents/theming/theming-controller';
 
 ModuleManager.register(
     IgcLegendModule,
@@ -64,6 +65,7 @@ declare global {
 
 export class SKNextColumnChart {
 
+    private chartData: any[] | undefined;
     private legend: IgcLegendComponent
     private toolbar: IgcToolbarComponent
     private chart: IgcDataChartComponent
@@ -73,6 +75,8 @@ export class SKNextColumnChart {
     private crosshairLayer: IgcCrosshairLayerComponent
     private calloutLayer: IgcCalloutLayerComponent
     private _bind: () => void;
+    private tabularData: { [key: string]: any; }[] | undefined;
+    private category: string = "";
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
@@ -106,6 +110,7 @@ export class SKNextColumnChart {
             calloutLayer.calloutLabelUpdating = this.onCalloutLabelUpdating;
             calloutLayer.textStyle = "11px Verdana";
             chart.seriesMouseLeftButtonUp = this.onSeriesMouseLeftButtonUp;
+            chart.onclick = this.onClick;
             crosshairLayer.cursorPosition = { x: 0, y: 0 };
         }
         this._bind();
@@ -114,12 +119,13 @@ export class SKNextColumnChart {
         window.revealBridgeListener = {
             dataReady: (incomingData: any) => {
                 const columns = incomingData.metadata.columns;
+                this.category = columns[0].name;
                 this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name);
-                const tabularData = this.combineColumnAndData(columns, incomingData.data);
-                const chartData = this.aggregateDataByCategory(tabularData, columns[0].name, columns[columns.length - 1].name);
-                this.columnSeries.dataSource = chartData;
-                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(chartData));
-                this.xAxis.dataSource = chartData;
+                this.tabularData = this.combineColumnAndData(columns, incomingData.data);
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.category, columns[columns.length - 1].name);
+                this.columnSeries.dataSource = this.chartData;
+                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
+                this.xAxis.dataSource = this.chartData;
             }
         };
         window.revealBridge.notifyExtensionIsReady();
@@ -151,10 +157,21 @@ export class SKNextColumnChart {
         sender: IgcSeriesViewerComponent,
         evt: IgcDataChartMouseButtonEventArgs
     ) => {
+        console.log(sender);
         if (evt.item) {
             evt.item.isSelected = !evt.item.isSelected;
+            (this.chartData as []).forEach((dataItem: any) => {
+                if (dataItem.category === evt.item.category) {
+                    dataItem.isSelected = evt.item.isSelected;
+                }
+            });
             this.columnSeries.notifyVisualPropertiesChanged();
         }
+    }
+
+    public onClick = (evt:MouseEvent) => {
+        console.log(evt);
+        evt.stopPropagation();
     }
 
     public toolbarCustomIconOnViewInit(): void {
@@ -163,16 +180,25 @@ export class SKNextColumnChart {
     }
 
     public toolbarToggleAction(sender: any, args: IgcToolCommandEventArgs): void {
-        var target = this.chart;
         switch (args.command.commandId)
-    	{
-    		case "GetSelectedData":
-    			console.log(1);
-    			break;
-    	}
+        {
+            case "GetSelectedData":
+                const isAllFalse = (this.chartData as { isSelected: boolean }[]).every(item => item.isSelected === false);
+                if (isAllFalse) {
+                    alert("チャートが選択されていません。");
+                } else {
+                    const selectedCategories = (this.chartData as { isSelected: boolean, category: string }[]).filter(item => item.isSelected === true).map(item => item.category);
+                    const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.category]));
+                    alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
+                }
+                break;
+            case "EnableSelecting":
+
+                break;
+        }
     }
 
-    public combineColumnAndData(fields: { [x: string]: { name: string | number; }; }, data: any[]) {
+    private combineColumnAndData(fields: { [x: string]: { name: string | number; }; }, data: any[]) {
         return data.map(record => {
             const combinedRecord: { [key: string]: any } = {}; // Add index signature
             record.forEach((value: any, index: string | number) => {
@@ -182,7 +208,7 @@ export class SKNextColumnChart {
         });
     }
 
-    public aggregateDataByCategory(data: any[], category: string, target: number) {
+    private aggregateDataByCategory(data: any[], category: string, target: number) {
         const aggregatedData: { [key: string]: number } = {};
         data.forEach((item) => {
             const cat = item[category];
@@ -196,8 +222,9 @@ export class SKNextColumnChart {
         });
 
         return Object.keys(aggregatedData).map((key) => ({
-            "category": this.formatDateString(String(key)),
+            "category": String(key),
             "value": aggregatedData[key],
+            "isSelected": false
         }));
     }
 
