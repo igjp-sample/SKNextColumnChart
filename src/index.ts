@@ -77,6 +77,7 @@ export class SKNextColumnChart {
     private _bind: () => void;
     private tabularData: { [key: string]: any; }[] | undefined;
     private category: string = "";
+    private enableSelecting: boolean = false;
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
@@ -147,9 +148,13 @@ export class SKNextColumnChart {
         evt: IgcAssigningCategoryStyleEventArgs) => {
         let items = evt.getItems(evt.startIndex, evt.endIndex);
         for (let i = 0; i < items.length; i++) {
-            if (items[i].isSelected) {
-                evt.strokeThickness = 5;
-                evt.fill = "#3a6b8e";
+            if (!this.enableSelecting) {
+                items[i].isSelected = false;
+            } else {
+                if (items[i].isSelected) {
+                    evt.strokeThickness = 5;
+                    evt.fill = "#3a6b8e";
+                }
             }
         }
     }
@@ -157,16 +162,59 @@ export class SKNextColumnChart {
         sender: IgcSeriesViewerComponent,
         evt: IgcDataChartMouseButtonEventArgs
     ) => {
-        console.log(sender);
-        if (evt.item) {
-            evt.item.isSelected = !evt.item.isSelected;
-            (this.chartData as []).forEach((dataItem: any) => {
-                if (dataItem.category === evt.item.category) {
-                    dataItem.isSelected = evt.item.isSelected;
-                }
-            });
-            this.columnSeries.notifyVisualPropertiesChanged();
+        if (this.enableSelecting) {
+            if (evt.item) {
+                evt.item.isSelected = !evt.item.isSelected;
+                (this.chartData as []).forEach((dataItem: any) => {
+                    if (dataItem.category === evt.item.category) {
+                        dataItem.isSelected = evt.item.isSelected;
+                    }
+                });
+                this.columnSeries.notifyVisualPropertiesChanged();
+            }
+        } else {
+            if (evt.series.tooltipTemplate === null || evt.series.tooltipTemplate === undefined) {
+                evt.series.tooltipTemplate = this.createDataChartTooltip;
+                evt.series.tooltipContainerTemplate = this.createDataChartTooltipContainer;
+                evt.series.simulateHover({x:0,y:0});
+                //evt.series.isDefaultToolTipSelected = true;
+                //evt.series.showDefaultTooltip = true;
+                this.columnSeries.simulateHover({x:50,y:100});
+            }
         }
+    }
+
+    public createDataChartTooltipContainer(context: any): any {
+        console.log(context);
+        var tooltip = document.createElement("div");
+        var title = document.createElement("div");
+        title.innerHTML = "Production";
+        title.className = "tooltipTitle";
+        tooltip.appendChild(title);
+        return tooltip;
+    }
+
+    public createDataChartTooltip(context: any): any {
+        //console.log(context);
+        if (!context) return null;
+
+        var dataItem = context.item;
+        if (!dataItem) return null;
+
+        var dataSeries = context.series;
+        if (!dataSeries) return null;
+
+        var tooltip = document.createElement("div");
+        tooltip.className = "ui-tooltip-content";
+
+        var title = document.createElement("div");
+        title.innerHTML = dataItem.Country + " Production";
+        title.className = "tooltipTitle";
+        tooltip.appendChild(title);
+
+        console.log(tooltip.style);
+
+        return tooltip;
     }
 
     public onClick = (evt:MouseEvent) => {
@@ -193,7 +241,16 @@ export class SKNextColumnChart {
                 }
                 break;
             case "EnableSelecting":
-
+                var enable = args.command.argumentsList[0].value as boolean;
+    			if (enable)
+    			{
+    				this.enableSelecting = true;
+    			}
+    			else
+    			{
+    				this.enableSelecting = false;
+                    this.columnSeries.notifyVisualPropertiesChanged();
+                }
                 break;
         }
     }
