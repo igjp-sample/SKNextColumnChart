@@ -98,9 +98,9 @@ export class SKNextColumnChart {
             toolbar.onCommand = this.toolbarToggleAction;
             chart.legend = this.legend;
             xAxis.tickLength = 0;
-            xAxis.labelTextStyle = "11px Verdana";
+            xAxis.labelTextStyle = "12px Roboto";
             yAxis.majorStrokeThickness = 0;
-            yAxis.labelTextStyle = "11px Verdana";
+            yAxis.labelTextStyle = "12px Roboto";
             yAxis.formatLabel = function (num) {
                 return num.toLocaleString();
             };
@@ -109,16 +109,17 @@ export class SKNextColumnChart {
             columnSeries.isCustomCategoryStyleAllowed = true;
             columnSeries.assigningCategoryStyle = this.onAssigningCategoryStyle;
             calloutLayer.calloutLabelUpdating = this.onCalloutLabelUpdating;
-            calloutLayer.textStyle = "11px Verdana";
+            calloutLayer.textStyle = "500 12px 'Roboto'";
             chart.seriesMouseLeftButtonUp = this.onSeriesMouseLeftButtonUp;
-            chart.onclick = this.onClick;
             crosshairLayer.cursorPosition = { x: 0, y: 0 };
+            xAxis.formatLabel = this.formatDateString;
         }
         this._bind();
         this.toolbarCustomIconOnViewInit();
 
         window.revealBridgeListener = {
             dataReady: (incomingData: any) => {
+                console.log(incomingData);
                 const columns = incomingData.metadata.columns;
                 this.category = columns[0].name;
                 this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name);
@@ -173,48 +174,21 @@ export class SKNextColumnChart {
                 this.columnSeries.notifyVisualPropertiesChanged();
             }
         } else {
-            if (evt.series.tooltipTemplate === null || evt.series.tooltipTemplate === undefined) {
-                evt.series.tooltipTemplate = this.createDataChartTooltip;
-                evt.series.tooltipContainerTemplate = this.createDataChartTooltipContainer;
-                evt.series.simulateHover({x:0,y:0});
-                //evt.series.isDefaultToolTipSelected = true;
-                //evt.series.showDefaultTooltip = true;
-                this.columnSeries.simulateHover({x:50,y:100});
-            }
+
         }
     }
 
-    public createDataChartTooltipContainer(context: any): any {
-        console.log(context);
-        var tooltip = document.createElement("div");
-        var title = document.createElement("div");
-        title.innerHTML = "Production";
-        title.className = "tooltipTitle";
-        tooltip.appendChild(title);
-        return tooltip;
-    }
+    public formatDateString(item: any): string {
+        // 日付の形式が YYYY-MM-DDThh:mm:ss に一致するかチェック
+        const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
 
-    public createDataChartTooltip(context: any): any {
-        //console.log(context);
-        if (!context) return null;
+        // 条件に一致する場合、T以前の部分だけを返す
+        if (regex.test(item.category)) {
+            return item.category.split('T')[0];
+        }
 
-        var dataItem = context.item;
-        if (!dataItem) return null;
-
-        var dataSeries = context.series;
-        if (!dataSeries) return null;
-
-        var tooltip = document.createElement("div");
-        tooltip.className = "ui-tooltip-content";
-
-        var title = document.createElement("div");
-        title.innerHTML = dataItem.Country + " Production";
-        title.className = "tooltipTitle";
-        tooltip.appendChild(title);
-
-        console.log(tooltip.style);
-
-        return tooltip;
+        // それ以外の場合、元の文字列をそのまま返す
+        return item.category;
     }
 
     public onClick = (evt:MouseEvent) => {
@@ -292,24 +266,12 @@ export class SKNextColumnChart {
     }
 
     private increaseFirstDigit(n: number): number {
-        let str = n.toString();
-        let firstDigit = parseInt(str[0]);
-        firstDigit++;
-        let rest = str.slice(1).replace(/[0-9]/g, '0');
-        return parseInt(firstDigit + rest);
-    }
-
-    private formatDateString(dateString: string) {
-        // 日付の形式が YYYY-MM-DDThh:mm:ss に一致するかチェック
-        const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
-
-        // 条件に一致する場合、T以前の部分だけを返す
-        if (regex.test(dateString)) {
-            return dateString.split('T')[0];
-        }
-
-        // それ以外の場合、元の文字列をそのまま返す
-        return dateString;
+        // let str = n.toString();
+        // let firstDigit = parseInt(str[0]);
+        // firstDigit++;
+        // let rest = str.slice(1).replace(/[0-9]/g, '0');
+        // return parseInt(firstDigit + rest);
+        return n * 1.15;
     }
 
     private getLastWordFromString(inputString: string) {

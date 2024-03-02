@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css?family=Titillium+Web');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
 #root, html, body, main {
     font-family: 'Titillium Web', Verdana, Tahoma, sans-serif;
@@ -445,4 +446,32 @@ table {
     flex-grow: 1;
     justify-content: flex-end;
     align-items: flex-end;
+}
+
+.custom-tool-tip {
+    background-color: rgb(255, 255, 255);
+    border-radius: 6px;
+    box-shadow: rgba(0, 0, 0, 0.098) 0px 2px 6px;
+    position: absolute;
+    min-width: 120px;
+    left: 100px;
+    padding: 6px 0;
+    height: auto;
+    width: auto;
+}
+.custom-tool-tip ul {
+    margin: 0 0;
+    padding: 0;
+    font: 400 12px "Roboto";
+}
+.custom-tool-tip li {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    line-height: 2.5;
+    padding: 0 14px;
+}
+.custom-tool-tip li:hover {
+    background-color: #f5f5f5;
+    cursor: pointer;
 }
