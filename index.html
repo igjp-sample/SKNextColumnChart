@@ -10,7 +10,7 @@
   </head>
 
   <body class="ig-typography" id="root">
-    <div class="container">
+    <div class="container" id="content">
 
       <div class="aboveContentSplit">
         <div class="aboveContentLeftContainer">
@@ -55,12 +55,13 @@
         </div>
       </div>
 
-      <div class="container fill">
+      <div class="container fill" id="ChartContainer">
         <igc-data-chart
           name="Chart"
           plot-area-margin-bottom="5"
-          highlighting-mode="None"
+          highlighting-mode="FadeOthers"
           grid-mode="BehindSeries"
+          series-highlighting-behavior="NearestItemsAndSeries"
           id="Chart">
           <igc-category-x-axis
             name="xAxis"
@@ -107,10 +108,11 @@
             horizontal-line-visibility="Collapsed"
           ></igc-crosshair-layer>
         </igc-data-chart>
-        <div class="custom-tool-tip">
+        <div class="custom-tooltip" id="CustomTooltip">
+          <p id="tooltipTitle"></p>
           <ul>
-            <li id="drill-up"><span></span>ドリルアップ</li>
-            <li id="drill-down"><span></span>ドリルダウン</li>
+            <li id="drill-up"><span class="dli-arrow-up"></span><div></div>ドリルアップ</li>
+            <li id="drill-down"><span class="dli-arrow-down"></span><div></div>ドリルダウン</li>
           </ul>
         </div>
       </div>

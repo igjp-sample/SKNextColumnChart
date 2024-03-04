@@ -18,6 +18,8 @@ import {
     MarkerType,
     IgcCalloutLayerComponent,
     IgcCalloutLabelUpdatingEventArgs,
+    IgcPlotAreaMouseEventArgs,
+    IgcChartMouseEventArgs,
 } from '@infragistics/igniteui-webcomponents-charts';
 import { IgcToolbarModule, IgcToolActionLabelModule } from '@infragistics/igniteui-webcomponents-layouts';
 import {
@@ -78,6 +80,7 @@ export class SKNextColumnChart {
     private tabularData: { [key: string]: any; }[] | undefined;
     private category: string = "";
     private enableSelecting: boolean = false;
+    private canDrillDown: boolean = false;
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
@@ -92,6 +95,9 @@ export class SKNextColumnChart {
         var crosshairLayer = this.crosshairLayer = document.getElementById('crosshairLayer') as IgcCrosshairLayerComponent;
         var columnSeries = this.columnSeries = document.getElementById('ColumnSeries') as unknown as IgcColumnSeriesComponent;
         var calloutLayer = this.calloutLayer = document.getElementById('CalloutLayer') as unknown as IgcCalloutLayerComponent;
+        var chartContainer = document.getElementById('ChartContainer') as HTMLDivElement;
+        var drillUp = document.getElementById('drill-up') as HTMLElement;
+        var drillDown = document.getElementById('drill-doqn') as HTMLElement;
         this.chart.highlightedValuesDisplayMode = 1;
         this._bind = () => {
             toolbar.target = this.chart;
@@ -111,8 +117,13 @@ export class SKNextColumnChart {
             calloutLayer.calloutLabelUpdating = this.onCalloutLabelUpdating;
             calloutLayer.textStyle = "500 12px 'Roboto'";
             chart.seriesMouseLeftButtonUp = this.onSeriesMouseLeftButtonUp;
+            //chart.plotAreaMouseOver = this.onPlotAreaMouseOver;
+            chart.onmousemove = this.onMouseEnter;
+            chartContainer.onmouseleave = this.onMouseLeave;
             crosshairLayer.cursorPosition = { x: 0, y: 0 };
             xAxis.formatLabel = this.formatDateString;
+            drillUp.onclick = this.onDrillUpClick;
+            //drillDown.onclick = this.onDrillDownClick;
         }
         this._bind();
         this.toolbarCustomIconOnViewInit();
@@ -128,9 +139,11 @@ export class SKNextColumnChart {
                 this.columnSeries.dataSource = this.chartData;
                 this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
                 this.xAxis.dataSource = this.chartData;
+                console.log(this.tabularData);
             }
         };
         window.revealBridge.notifyExtensionIsReady();
+
     }
 
     private onCalloutLabelUpdating(sender:IgcCalloutLayerComponent, e:IgcCalloutLabelUpdatingEventArgs)
@@ -159,6 +172,44 @@ export class SKNextColumnChart {
             }
         }
     }
+
+    // public onPlotAreaMouseOver = (
+    //     sender: IgcSeriesViewerComponent,
+    //     evt:  IgcPlotAreaMouseEventArgs
+    // ) => {
+    //     if (evt) {
+    //         console.log(evt);
+    //     }
+    // }
+
+    public onDrillUpClick = () => {
+        console.log('Drill Up');
+        if (this.tabularData) {
+            this.chartData = this.aggregateDataByCategory(this.tabularData, "Month", "Sum of Sales");
+            this.columnSeries.dataSource = this.chartData;
+            this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
+            this.xAxis.dataSource = this.chartData;
+        }
+        this.columnSeries.notifyVisualPropertiesChanged();
+    }
+
+    public onDrillDownClick = () => {
+
+    }
+
+    public onMouseLeave = (
+        evt: MouseEvent
+    ) => {
+        if (evt) {
+            const toolTipElement = document.getElementById('CustomTooltip');
+            if (toolTipElement) {
+                toolTipElement.style.display = 'none';
+
+            }
+        }
+    }
+
+
     public onSeriesMouseLeftButtonUp = (
         sender: IgcSeriesViewerComponent,
         evt: IgcDataChartMouseButtonEventArgs
@@ -166,15 +217,13 @@ export class SKNextColumnChart {
         if (this.enableSelecting) {
             if (evt.item) {
                 evt.item.isSelected = !evt.item.isSelected;
-                (this.chartData as []).forEach((dataItem: any) => {
+                this.chartData?.forEach((dataItem: any) => {
                     if (dataItem.category === evt.item.category) {
                         dataItem.isSelected = evt.item.isSelected;
                     }
                 });
                 this.columnSeries.notifyVisualPropertiesChanged();
             }
-        } else {
-
         }
     }
 
@@ -191,9 +240,38 @@ export class SKNextColumnChart {
         return item.category;
     }
 
-    public onClick = (evt:MouseEvent) => {
-        console.log(evt);
-        evt.stopPropagation();
+    // public onClick = (evt:MouseEvent) => {
+    //     console.log(evt);
+    //     evt.stopPropagation();
+    // }
+
+    public onMouseEnter = (evt:MouseEvent) => {
+        if (!this.enableSelecting) {
+            const toolTipElement = document.getElementById('CustomTooltip');
+            const worldPosition = this.columnSeries.toWorldPosition({ x: evt.clientX, y: evt.clientY });
+            // console.log(worldPosition);
+            if (0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1) {
+                if (toolTipElement) {
+                    const toolTipTitleElement = document.getElementById('tooltipTitle');
+                    //const leftValue = 100 / this.columnSeries.dataSource.length;
+                    //const itemIndex = this.columnSeries.getItemIndex({ x: worldPosition.x, y: worldPosition.y});
+                    const Item = this.columnSeries.getItem({ x: worldPosition.x, y: worldPosition.y});
+                    var x = evt.clientX;
+                    if (x + toolTipElement.offsetWidth > window.innerWidth) {
+                        x -= toolTipElement.offsetWidth;
+                    }
+                    toolTipElement.style.left = x + 'px';
+                    toolTipElement.style.display = 'block';
+                    if (toolTipTitleElement) {
+                        toolTipTitleElement.innerText = Item.category;
+                    }
+                }
+            } else {
+                if (toolTipElement) {
+                    toolTipElement.style.display = 'none';
+                }
+            }
+        }
     }
 
     public toolbarCustomIconOnViewInit(): void {
@@ -219,6 +297,10 @@ export class SKNextColumnChart {
     			if (enable)
     			{
     				this.enableSelecting = true;
+                    const toolTipElement = document.getElementById('CustomTooltip');
+                    if (toolTipElement) {
+                        toolTipElement.style.display = 'none';
+                    }
     			}
     			else
     			{
@@ -229,17 +311,50 @@ export class SKNextColumnChart {
         }
     }
 
-    private combineColumnAndData(fields: { [x: string]: { name: string | number; }; }, data: any[]) {
-        return data.map(record => {
+    private combineColumnAndData(fields: { [x: string]: {
+        type: number; name: string | number;
+    }; }, data: any[]) {
+        var transformFields = Object.values(fields);
+        var transformDateData = data;
+        if(fields[0].type == 3) {
+            this.canDrillDown = true;
+            var insertMonth = {
+                "name": "Month",
+                "type": 4
+            };
+            var insertYears = {
+                "name": "Years",
+                "type": 4
+            };
+            transformFields.splice(1, 0, insertMonth);
+            transformFields.splice(2, 0, insertYears);
+            transformDateData = this.transformDateData(data);
+        }
+        //console.log(transformFields, transformDateData);
+        return transformDateData.map(record => {
             const combinedRecord: { [key: string]: any } = {}; // Add index signature
             record.forEach((value: any, index: string | number) => {
-                combinedRecord[fields[index].name] = value;
+                combinedRecord[transformFields[Number(index)].name] = value;
             });
             return combinedRecord;
         });
     }
 
-    private aggregateDataByCategory(data: any[], category: string, target: number) {
+    private transformDateData(data: any[]) {
+        return data.map(item => {
+            let date = new Date(item[0]);
+            let year = date.getFullYear();
+            let month = ('0' + (date.getMonth() + 1)).slice(-2);
+            return [
+                item[0],
+                `${year}-${month}`,
+                `${year}`,
+                ...item.slice(1)
+            ];
+        });
+    }
+
+    private aggregateDataByCategory(data: any[], category: string, target: any) {
         const aggregatedData: { [key: string]: number } = {};
         data.forEach((item) => {
             const cat = item[category];
