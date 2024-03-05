@@ -150,7 +150,7 @@ export class SKNextColumnChart {
                 this.columnSeries.dataSource = this.chartData;
                 this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
                 this.xAxis.dataSource = this.chartData;
-                console.log(this.tabularData);
+                // console.log(this.tabularData);
             }
         };
         window.revealBridge.notifyExtensionIsReady();
@@ -231,7 +231,7 @@ export class SKNextColumnChart {
             this.currentDataNodeLayer = childNode?.name as string;
             if (this.tabularData) {
                 this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
-                console.log(this.chartData);
+                // console.log(this.chartData);
                 this.columnSeries.dataSource = this.chartData;
                 this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
                 this.xAxis.dataSource = this.chartData;
@@ -305,7 +305,7 @@ export class SKNextColumnChart {
             // console.log(worldPosition);
 
             const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-            console.log(currentNode);
+            // console.log(currentNode);
             if (this.isTopLevel(currentNode, this.dataNodeLayer)) {
                 this.drillUp.style.display = "none";
                 this.drillDown.style.display = "flex";
@@ -368,6 +368,7 @@ export class SKNextColumnChart {
                     const selectedCategories = (this.chartData as { isSelected: boolean, category: string }[]).filter(item => item.isSelected === true).map(item => item.category);
                     const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.category]));
                     alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
+                    console.log(filteredData);
                 }
                 break;
             case "EnableSelecting":
@@ -498,12 +499,12 @@ export class SKNextColumnChart {
 
     // 最下層のアイテムかどうかを判別する関数
     private isBottomLevel(node: Node): boolean {
-        console.log(node);
+        // console.log(node);
         return !node.children || node.children.length === 0;
     }
 
     private findNodeByName<T>(node: Node, name: string): Node | null {
-        console.log(node, name);
+        // console.log(node, name);
         // 現在のノードが目的のnameを持つかチェック
         if (node.name === name) {
           return node;

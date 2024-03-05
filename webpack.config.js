@@ -5,7 +5,7 @@ module.exports = {
     devtool: 'source-map',
     entry: './src/index.ts',
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'docs'),
         filename: 'index.bundle.js'
     },
     module: {
@@ -27,7 +27,8 @@ module.exports = {
         new CopyWebpackPlugin({
             patterns: [
                 { from: './index.html', to: 'index.html' },
-                { from: './index.css', to: 'index.css' }
+                { from: './index.css', to: 'index.css' },
+                { from: path.resolve(__dirname, './assets'), to: path.resolve(__dirname, './docs/assets') }
             ]
         })
     ]
