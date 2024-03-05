@@ -65,6 +65,12 @@ declare global {
     }
 }
 
+interface Node {
+    id: string;
+    name: string;
+    children?: Node[]; // 再帰的な型定義で子ノードを持つ
+}
+
 export class SKNextColumnChart {
 
     private chartData: any[] | undefined;
@@ -81,6 +87,11 @@ export class SKNextColumnChart {
     private category: string = "";
     private enableSelecting: boolean = false;
     private canDrillDown: boolean = false;
+    private dataNodeLayer!: Node;
+    private currentDataNodeLayer: string = "Date";
+
+    private drillUp: HTMLElement;
+    private drillDown: HTMLElement;
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
@@ -96,8 +107,8 @@ export class SKNextColumnChart {
         var columnSeries = this.columnSeries = document.getElementById('ColumnSeries') as unknown as IgcColumnSeriesComponent;
         var calloutLayer = this.calloutLayer = document.getElementById('CalloutLayer') as unknown as IgcCalloutLayerComponent;
         var chartContainer = document.getElementById('ChartContainer') as HTMLDivElement;
-        var drillUp = document.getElementById('drill-up') as HTMLElement;
-        var drillDown = document.getElementById('drill-doqn') as HTMLElement;
+        var drillUp = this.drillUp = document.getElementById('drill-up') as HTMLElement;
+        var drillDown = this.drillDown = document.getElementById('drill-down') as HTMLElement;
         this.chart.highlightedValuesDisplayMode = 1;
         this._bind = () => {
             toolbar.target = this.chart;
@@ -123,7 +134,7 @@ export class SKNextColumnChart {
             crosshairLayer.cursorPosition = { x: 0, y: 0 };
             xAxis.formatLabel = this.formatDateString;
             drillUp.onclick = this.onDrillUpClick;
-            //drillDown.onclick = this.onDrillDownClick;
+            drillDown.onclick = this.onDrillDownClick;
         }
         this._bind();
         this.toolbarCustomIconOnViewInit();
@@ -183,18 +194,60 @@ export class SKNextColumnChart {
     // }
 
     public onDrillUpClick = () => {
-        console.log('Drill Up');
-        if (this.tabularData) {
-            this.chartData = this.aggregateDataByCategory(this.tabularData, "Month", "Sum of Sales");
-            this.columnSeries.dataSource = this.chartData;
-            this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
-            this.xAxis.dataSource = this.chartData;
+        //console.log('Drill Up');
+        //console.log(this.dataNodeLayer, this.currentDataNodeLayer);
+        const parentNode = this.findParentNode(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+        //console.log(parentNode);
+        if (parentNode !== null) {
+            this.currentDataNodeLayer = parentNode?.name;
+            if (this.tabularData) {
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
+                this.columnSeries.dataSource = this.chartData;
+                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
+                this.xAxis.dataSource = this.chartData;
+            }
         }
         this.columnSeries.notifyVisualPropertiesChanged();
+        const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+        if (this.isTopLevel(currentNode, this.dataNodeLayer)) {
+            this.drillUp.style.display = "none";
+            this.drillDown.style.display = "flex";
+        } else if(this.isBottomLevel(currentNode)) {
+            this.drillUp.style.display = "flex";
+            this.drillDown.style.display = "none";
+        } else {
+            this.drillUp.style.display = "flex";
+            this.drillDown.style.display = "flex";
+        }
     }
 
     public onDrillDownClick = () => {
-
+        //console.log('Drill Down');
+        //console.log(this.dataNodeLayer, this.currentDataNodeLayer);
+        const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+        const childNode = currentNode.children?.[0] as Node;
+        //console.log(childNode);
+        if (childNode !== null) {
+            this.currentDataNodeLayer = childNode?.name as string;
+            if (this.tabularData) {
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
+                console.log(this.chartData);
+                this.columnSeries.dataSource = this.chartData;
+                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
+                this.xAxis.dataSource = this.chartData;
+            }
+        }
+        this.columnSeries.notifyVisualPropertiesChanged();
+        if (this.isTopLevel(childNode, this.dataNodeLayer)) {
+            this.drillUp.style.display = "none";
+            this.drillDown.style.display = "flex";
+        } else if(this.isBottomLevel(childNode)) {
+            this.drillUp.style.display = "flex";
+            this.drillDown.style.display = "none";
+        } else {
+            this.drillUp.style.display = "flex";
+            this.drillDown.style.display = "flex";
+        }
     }
 
     public onMouseLeave = (
@@ -246,10 +299,24 @@ export class SKNextColumnChart {
     // }
 
     public onMouseEnter = (evt:MouseEvent) => {
-        if (!this.enableSelecting) {
+        if (!this.enableSelecting && this.canDrillDown) {
             const toolTipElement = document.getElementById('CustomTooltip');
             const worldPosition = this.columnSeries.toWorldPosition({ x: evt.clientX, y: evt.clientY });
             // console.log(worldPosition);
+
+            const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+            console.log(currentNode);
+            if (this.isTopLevel(currentNode, this.dataNodeLayer)) {
+                this.drillUp.style.display = "none";
+                this.drillDown.style.display = "flex";
+            } else if(this.isBottomLevel(currentNode)) {
+                this.drillUp.style.display = "flex";
+                this.drillDown.style.display = "none";
+            } else {
+                this.drillUp.style.display = "flex";
+                this.drillDown.style.display = "flex";
+            }
+
             if (0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1) {
                 if (toolTipElement) {
                     const toolTipTitleElement = document.getElementById('tooltipTitle');
@@ -263,7 +330,18 @@ export class SKNextColumnChart {
                     toolTipElement.style.left = x + 'px';
                     toolTipElement.style.display = 'block';
                     if (toolTipTitleElement) {
-                        toolTipTitleElement.innerText = Item.category;
+                        if (this.canDrillDown) {
+                            const dateObject = new Date(Item.category);
+                            if (this.currentDataNodeLayer === "Date") {
+                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月" + dateObject.getDate() + "日";
+                            } else if (this.currentDataNodeLayer === "Month") {
+                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月";
+                            } else if (this.currentDataNodeLayer === "Years") {
+                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年";
+                            }
+                        } else {
+                            toolTipTitleElement.innerText = Item.category;
+                        }
                     }
                 }
             } else {
@@ -317,6 +395,23 @@ export class SKNextColumnChart {
         var transformFields = Object.values(fields);
         var transformDateData = data;
         if(fields[0].type == 3) {
+            this.dataNodeLayer = {
+                id:"1",
+                name: "Years",
+                children: [
+                    {
+                        id: "2",
+                        name: "Month",
+                        children: [
+                            {
+                                id: "3",
+                                name: "Date",
+                            }
+                        ]
+                    }
+                ]
+            };
+
             this.canDrillDown = true;
             var insertMonth = {
                 "name": "Month",
@@ -395,6 +490,65 @@ export class SKNextColumnChart {
         // 分割した配列から最後の要素を取得
         return words[words.length - 1];
     }
+
+    // 最上層のアイテムかどうかを判別する関数
+    private isTopLevel(node: Node, rootNode: Node): boolean {
+        return node === rootNode;
+    }
+
+    // 最下層のアイテムかどうかを判別する関数
+    private isBottomLevel(node: Node): boolean {
+        console.log(node);
+        return !node.children || node.children.length === 0;
+    }
+
+    private findNodeByName<T>(node: Node, name: string): Node | null {
+        console.log(node, name);
+        // 現在のノードが目的のnameを持つかチェック
+        if (node.name === name) {
+          return node;
+        }
+
+        // 子ノードがあれば、それぞれを再帰的に探索
+        if (node.children) {
+          for (const child of node.children) {
+            const result = this.findNodeByName(child, name);
+            if (result) {
+              return result; // 目的のノードが見つかったら、すぐに返す
+            }
+          }
+        }
+
+        // 目的のノードが見つからなければnullを返す
+        return null;
+    }
+
+    private findParentNode<T>(node: Node, targetName: string, parent: Node | null = null): Node | null {
+        //console.log(node, targetName, parent);
+        //parent = this.findNodeByName(node, "Years");
+        // 子ノードを探索
+        if (node.children) {
+          for (const child of node.children) {
+            // 指定されたIDのノードを見つけた場合、その親ノードを返す
+            if (child.name === targetName) {
+                if (parent === null) {
+                    return this.findNodeByName(node, "Years");
+                } else {
+                    return parent;
+                }
+            }
+
+            // 子ノードにさらに子ノードがある場合は、再帰的に探索
+            const foundParent = this.findParentNode(child, targetName, child);
+            if (foundParent) {
+              return foundParent;
+            }
+          }
+        }
+
+        // 指定されたIDのノードまたはその親ノードが見つからない場合
+        return null;
+      }
 
 }
 
