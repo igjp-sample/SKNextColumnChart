@@ -139,15 +139,13 @@ export class SKNextColumnChart {
 
         window.revealBridgeListener = {
             dataReady: (incomingData: any) => {
-                console.log(incomingData);
+                console.log(incomingData); // Reveal から渡されるデータです。
                 const columns = incomingData.metadata.columns;
                 this.category = columns[0].name;
-                this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name);
+                this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name); //「sum of xxx」のような形式の文字列がRevealから渡されるため、最後の単語のみを取得します。
                 this.tabularData = this.combineColumnAndData(columns, incomingData.data);
                 this.chartData = this.aggregateDataByCategory(this.tabularData, this.category, columns[columns.length - 1].name);
-                this.columnSeries.dataSource = this.chartData;
-                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
-                this.xAxis.dataSource = this.chartData;
+                this.updateChart(this.chartData);
             }
         };
         window.revealBridge.notifyExtensionIsReady();
@@ -198,23 +196,12 @@ export class SKNextColumnChart {
             this.currentDataNodeLayer = parentNode?.name;
             if (this.tabularData) {
                 this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
-                this.columnSeries.dataSource = this.chartData;
-                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
-                this.xAxis.dataSource = this.chartData;
+                this.updateChart(this.chartData);
             }
         }
         this.columnSeries.notifyVisualPropertiesChanged();
         const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-        if (this.isTopLevel(currentNode, this.dataNodeLayer)) {
-            this.drillUp.style.display = "none";
-            this.drillDown.style.display = "flex";
-        } else if(this.isBottomLevel(currentNode)) {
-            this.drillUp.style.display = "flex";
-            this.drillDown.style.display = "none";
-        } else {
-            this.drillUp.style.display = "flex";
-            this.drillDown.style.display = "flex";
-        }
+        this.setDisplayStyles(currentNode);
     }
 
     public onDrillDownClick = () => {
@@ -228,22 +215,11 @@ export class SKNextColumnChart {
                 if (this.drillDown.getAttribute("drillTo") !== null) {
                     this.chartData = this.chartData.filter((item: any) => item.category.startsWith(this.drillDown.getAttribute("drillTo")));
                 }
-                this.columnSeries.dataSource = this.chartData;
-                this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
-                this.xAxis.dataSource = this.chartData;
+                this.updateChart(this.chartData);
             }
         }
         this.columnSeries.notifyVisualPropertiesChanged();
-        if (this.isTopLevel(childNode, this.dataNodeLayer)) {
-            this.drillUp.style.display = "none";
-            this.drillDown.style.display = "flex";
-        } else if(this.isBottomLevel(childNode)) {
-            this.drillUp.style.display = "flex";
-            this.drillDown.style.display = "none";
-        } else {
-            this.drillUp.style.display = "flex";
-            this.drillDown.style.display = "flex";
-        }
+        this.setDisplayStyles(currentNode);
     }
 
     /**
@@ -284,12 +260,10 @@ export class SKNextColumnChart {
     public formatDateString(item: any): string {
         // 日付の形式が YYYY-MM-DDThh:mm:ss に一致するかチェック
         const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
-
         // 条件に一致する場合、T以前の部分だけを返す
         if (regex.test(item.category)) {
             return item.category.split('T')[0];
         }
-
         // それ以外の場合、元の文字列をそのまま返す
         return item.category;
     }
@@ -299,17 +273,7 @@ export class SKNextColumnChart {
             const worldPosition = this.columnSeries.toWorldPosition({ x: evt.clientX, y: evt.clientY });
 
             const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-            // console.log(currentNode);
-            if (this.isTopLevel(currentNode, this.dataNodeLayer)) {
-                this.drillUp.style.display = "none";
-                this.drillDown.style.display = "flex";
-            } else if(this.isBottomLevel(currentNode)) {
-                this.drillUp.style.display = "flex";
-                this.drillDown.style.display = "none";
-            } else {
-                this.drillUp.style.display = "flex";
-                this.drillDown.style.display = "flex";
-            }
+            this.setDisplayStyles(currentNode);
 
             if (0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1) {
                 if (this.customTooltip) {
@@ -349,6 +313,9 @@ export class SKNextColumnChart {
         }
     }
 
+    /**
+     * ツールバーのNextIconメニューのアイコンを設定します。
+     */
     public toolbarCustomIconOnViewInit(): void {
         const icon = '<svg width="22px" height="22px" stroke="none" viewBox="0 0 224.87999 225" height="300" preserveAspectRatio="xMidYMid meet" version="1.0"><defs><clipPath id="3e09cefffb"><path d="M 76 30.199219 L 224.761719 30.199219 L 224.761719 179 L 76 179 Z M 76 30.199219 " clip-rule="nonzero"/></clipPath><clipPath id="336336d306"><path d="M 60.277344 46 L 209 46 L 209 195 L 60.277344 195 Z M 60.277344 46 " clip-rule="nonzero"/></clipPath></defs><g clip-path="url(#3e09cefffb)"><path fill="#bebfbf" d="M 224.851562 178.777344 L 76.273438 30.199219 L 118.8125 30.199219 L 194.769531 106.15625 L 194.769531 30.199219 L 224.851562 30.199219 Z M 224.851562 178.777344 " fill-opacity="1" fill-rule="evenodd"/></g><g clip-path="url(#336336d306)"><path fill="#3661ac" d="M 60.296875 46.21875 L 208.878906 194.796875 L 166.335938 194.796875 L 90.378906 118.839844 L 90.378906 194.796875 L 60.296875 194.796875 Z M 60.296875 46.21875 " fill-opacity="1" fill-rule="evenodd"/></g></svg>';
         this.toolbar.registerIconFromText("CustomCollection", "NextIcon", icon);
@@ -376,22 +343,29 @@ export class SKNextColumnChart {
                     }
                 }
                 break;
-            case "EnableSelecting":
+            case "EnableSelecting": // チャート選択モードメニューがクリックされた場合
                 var enable = args.command.argumentsList[0].value as boolean;
-    			if (enable)
-    			{
+    			if (enable) {
     				this.enableSelecting = true;
                     if (this.customTooltip) {
-                        this.customTooltip.style.display = 'none';
+                        this.customTooltip.style.display = 'none'; // ドリルダウン機能を無効にするため、カスタムツールチップを非表示にします。
                     }
-    			}
-    			else
-    			{
+    			} else {
     				this.enableSelecting = false;
-                    this.columnSeries.notifyVisualPropertiesChanged();
+                    this.columnSeries.notifyVisualPropertiesChanged(); //チャート選択モードが無効になるため、チャートの選択状態をクリアします。
                 }
                 break;
         }
+    }
+
+    /**
+     * チャートを更新します。
+     * @param chartData - 更新するチャートのデータ
+     */
+    private updateChart(chartData: any) {
+        this.columnSeries.dataSource = chartData;
+        this.yAxis.maximumValue = this.findMaxValueAndIncreaseFirstDigit(chartData).increasedValue;
+        this.xAxis.dataSource = chartData;
     }
 
     private combineColumnAndData(fields: { [x: string]: {
@@ -454,19 +428,24 @@ export class SKNextColumnChart {
         });
     }
 
+    /**
+     * カテゴリごとにデータを集計します。
+     * @param data - 集計するデータ配列
+     * @param category - カテゴリのプロパティ名
+     * @param target - 集計する対象のプロパティ名
+     * @returns - カテゴリごとに集計されたデータ配列
+     */
     private aggregateDataByCategory(data: any[], category: string, target: any) {
         const aggregatedData: { [key: string]: number } = {};
         data.forEach((item) => {
             const cat = item[category];
             const sum = item[target];
-
             if (aggregatedData[cat]) {
                 aggregatedData[cat] += sum;
             } else {
                 aggregatedData[cat] = sum;
             }
         });
-
         return Object.keys(aggregatedData).map((key) => ({
             "category": String(key),
             "value": aggregatedData[key],
@@ -474,21 +453,55 @@ export class SKNextColumnChart {
         }));
     }
 
-    private findMaxValue(data: any[]) {
-        // data配列からvalueの最大値を見つける
+    /**
+     * ドリルダウン階層におけるメニューの表示スタイルを設定します。
+     * ノードが最上層の場合、ドリルアップボタンを非表示にし、ドリルダウンボタンを表示します。
+     * ノードが最下層の場合、ドリルアップボタンを表示し、ドリルダウンボタンを非表示にします。
+     * ノードが中間層の場合、ドリルアップボタンとドリルダウンボタンを表示します。
+     * @param node - 表示スタイルを設定するノード
+     */
+    private setDisplayStyles(node: Node) {
+        if (this.isTopLevel(node, this.dataNodeLayer)) {
+            this.setDrillStyles("none", "flex");
+        } else if(this.isBottomLevel(node)) {
+            this.setDrillStyles("flex", "none");
+        } else {
+            this.setDrillStyles("flex", "flex");
+        }
+    }
+
+    /**
+     * ドリルアップボタンとドリルダウンボタンの表示スタイルを設定します。
+     * @param drillUpDisplay - ドリルアップボタンの表示スタイル
+     * @param drillDownDisplay - ドリルダウンボタンの表示スタイル
+     */
+    private setDrillStyles(drillUpDisplay: string, drillDownDisplay: string) {
+        this.drillUp.style.display = drillUpDisplay;
+        this.drillDown.style.display = drillDownDisplay;
+    }
+
+
+    /**
+     * データ配列から最大値を見つけ、最大値の1桁目を増加させた値を返します。
+     * YnumericAxisの最大値に、実際の最大値より若干余白をもたせるために使用します。
+     * @param data - 最大値を見つけるためのデータ配列
+     * @returns - 最大値と増加させた値のオブジェクト
+     */
+    private findMaxValueAndIncreaseFirstDigit(data: any[]) {
         const maxValue = data.reduce((max, item) => Math.max(max, item.value), data[0].value);
-        return maxValue;
+        const increasedValue = maxValue * 1.15;
+        return { maxValue, increasedValue };
     }
 
-    private increaseFirstDigit(n: number): number {
-        // let str = n.toString();
-        // let firstDigit = parseInt(str[0]);
-        // firstDigit++;
-        // let rest = str.slice(1).replace(/[0-9]/g, '0');
-        // return parseInt(firstDigit + rest);
-        return n * 1.15;
-    }
+    // ==================================================================
+    // = ドリルダウン機能有効時における、ノードレイヤーの操作関連メソッドです。
+    // ==================================================================
 
+    /**
+     * 文字列から最後の単語を取得します。
+     * @param inputString - 最後の単語を取得する対象の文字列
+     * @returns - 最後の単語
+     */
     private getLastWordFromString(inputString: string) {
         // 文字列を半角スペースで分割
         const words = inputString.split(' ');
@@ -496,24 +509,36 @@ export class SKNextColumnChart {
         return words[words.length - 1];
     }
 
-    // 最上層のアイテムかどうかを判別する関数
+    /**
+     * ノードが最上層のアイテムかどうかを判別します。
+     * @param node - 判別するノード
+     * @param rootNode - ルートノード
+     * @returns - 最上層のアイテムであればtrue、そうでなければfalse
+     */
     private isTopLevel(node: Node, rootNode: Node): boolean {
         return node === rootNode;
     }
 
-    // 最下層のアイテムかどうかを判別する関数
+    /**
+     * ノードが最下層のアイテムかどうかを判別します。
+     * @param node - 判別するノード
+     * @returns - 最下層のアイテムであればtrue、そうでなければfalse
+     */
     private isBottomLevel(node: Node): boolean {
-        // console.log(node);
         return !node.children || node.children.length === 0;
     }
 
+    /**
+     * ノード名を指定してノードを検索します。
+     * @param node - 検索を開始するノード
+     * @param name - 検索するノードの名前
+     * @returns - 検索されたノード、見つからない場合はnull
+     */
     private findNodeByName<T>(node: Node, name: string): Node | null {
-        // console.log(node, name);
         // 現在のノードが目的のnameを持つかチェック
         if (node.name === name) {
           return node;
         }
-
         // 子ノードがあれば、それぞれを再帰的に探索
         if (node.children) {
           for (const child of node.children) {
@@ -523,14 +548,11 @@ export class SKNextColumnChart {
             }
           }
         }
-
         // 目的のノードが見つからなければnullを返す
         return null;
     }
 
     private findParentNode<T>(node: Node, targetName: string, parent: Node | null = null): Node | null {
-        //console.log(node, targetName, parent);
-        //parent = this.findNodeByName(node, "Years");
         // 子ノードを探索
         if (node.children) {
           for (const child of node.children) {
@@ -542,7 +564,6 @@ export class SKNextColumnChart {
                     return parent;
                 }
             }
-
             // 子ノードにさらに子ノードがある場合は、再帰的に探索
             const foundParent = this.findParentNode(child, targetName, child);
             if (foundParent) {
@@ -550,7 +571,6 @@ export class SKNextColumnChart {
             }
           }
         }
-
         // 指定されたIDのノードまたはその親ノードが見つからない場合
         return null;
       }
