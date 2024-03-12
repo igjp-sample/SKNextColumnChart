@@ -3,44 +3,37 @@ import 'igniteui-webcomponents/themes/light/bootstrap.css'
 import '@webcomponents/custom-elements/custom-elements.min';
 import '@webcomponents/custom-elements/src/native-shim.js';
 
+// Modules
 import {
-    IgcLegendModule,
-    IgcDataChartCoreModule,
-    IgcDataChartCategoryModule,
-    IgcDataChartCategoryCoreModule,
-    IgcDataChartInteractivityModule,
-    IgcDataChartAnnotationModule,
-    IgcDataChartVerticalCategoryModule,
-    IgcAnnotationLayerProxyModule,
-    IgcDataChartToolbarModule,
-    IgcDataChartCategoryTrendLineModule,
-    IgcCrosshairLayerComponent,
-    MarkerType,
-    IgcCalloutLayerComponent,
-    IgcCalloutLabelUpdatingEventArgs,
-    IgcPlotAreaMouseEventArgs,
-    IgcChartMouseEventArgs,
+    IgcLegendModule, IgcDataChartCoreModule, IgcDataChartCategoryModule,
+    IgcDataChartCategoryCoreModule, IgcDataChartInteractivityModule, IgcDataChartAnnotationModule,
+    IgcDataChartVerticalCategoryModule, IgcAnnotationLayerProxyModule, IgcDataChartToolbarModule,
+    IgcDataChartCategoryTrendLineModule, IgcValueOverlayModule
 } from '@infragistics/igniteui-webcomponents-charts';
-import { IgcToolbarModule, IgcToolActionLabelModule } from '@infragistics/igniteui-webcomponents-layouts';
 import {
-    IgcColumnSeriesComponent,
-    IgcLegendComponent,
-    IgcDataChartComponent,
-    IgcCategoryXAxisComponent,
-    IgcNumericYAxisComponent,
-    IgcDataToolTipLayerComponent,
-    IgcSeriesViewerComponent,
-    IgcCategorySeriesComponent,
-} from '@infragistics/igniteui-webcomponents-charts';
-import { IgcToolbarComponent,IgcToolActionIconMenuComponent,IgcToolActionCheckboxComponent,IgcToolActionLabelComponent } from '@infragistics/igniteui-webcomponents-layouts';
+    IgcToolbarModule, IgcToolActionLabelModule
+} from '@infragistics/igniteui-webcomponents-layouts';
+
+// Components
 import {
-    IgcAssigningCategoryStyleEventArgs,
-    IgcDataChartMouseButtonEventArgs,
+    IgcColumnSeriesComponent, IgcLegendComponent, IgcDataChartComponent,
+    IgcCategoryXAxisComponent, IgcNumericYAxisComponent, IgcCrosshairLayerComponent,
+    IgcCalloutLayerComponent, IgcSeriesViewerComponent, IgcCategorySeriesComponent,
 } from '@infragistics/igniteui-webcomponents-charts';
-import { IgcToolCommandEventArgs } from '@infragistics/igniteui-webcomponents-layouts';
-import { IgcValueOverlayModule } from '@infragistics/igniteui-webcomponents-charts';
-import { DataTemplateRenderInfo, DataTemplateMeasureInfo, ModuleManager } from '@infragistics/igniteui-webcomponents-core';
-import { themeSymbol } from 'igniteui-webcomponents/theming/theming-controller';
+import {
+    IgcToolbarComponent
+} from '@infragistics/igniteui-webcomponents-layouts';
+
+// EventArgs
+import {
+    IgcAssigningCategoryStyleEventArgs, IgcDataChartMouseButtonEventArgs, IgcCalloutLabelUpdatingEventArgs,
+} from '@infragistics/igniteui-webcomponents-charts';
+import {
+    IgcToolCommandEventArgs
+} from '@infragistics/igniteui-webcomponents-layouts';
+
+// Core
+import { ModuleManager } from '@infragistics/igniteui-webcomponents-core';
 
 ModuleManager.register(
     IgcLegendModule,
@@ -85,6 +78,9 @@ export class SKNextColumnChart {
     private _bind: () => void;
     private tabularData: { [key: string]: any; }[] | undefined;
     private category: string = "";
+    /**
+     * チャートの複数選択機能を有効にするかどうかを示すフラグです。
+     */
     private enableSelecting: boolean = false;
     private canDrillDown: boolean = false;
     private dataNodeLayer!: Node;
@@ -92,6 +88,7 @@ export class SKNextColumnChart {
 
     private drillUp: HTMLElement;
     private drillDown: HTMLElement;
+    private customTooltip: HTMLElement;
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
@@ -109,6 +106,8 @@ export class SKNextColumnChart {
         var chartContainer = document.getElementById('ChartContainer') as HTMLDivElement;
         var drillUp = this.drillUp = document.getElementById('drill-up') as HTMLElement;
         var drillDown = this.drillDown = document.getElementById('drill-down') as HTMLElement;
+        var customTooltip = this.customTooltip = document.getElementById('CustomTooltip') as HTMLElement;
+
         this.chart.highlightedValuesDisplayMode = 1;
         this._bind = () => {
             toolbar.target = this.chart;
@@ -128,7 +127,6 @@ export class SKNextColumnChart {
             calloutLayer.calloutLabelUpdating = this.onCalloutLabelUpdating;
             calloutLayer.textStyle = "500 12px 'Roboto'";
             chart.seriesMouseLeftButtonUp = this.onSeriesMouseLeftButtonUp;
-            //chart.plotAreaMouseOver = this.onPlotAreaMouseOver;
             chart.onmousemove = this.onMouseEnter;
             chartContainer.onmouseleave = this.onMouseLeave;
             crosshairLayer.cursorPosition = { x: 0, y: 0 };
@@ -150,54 +148,52 @@ export class SKNextColumnChart {
                 this.columnSeries.dataSource = this.chartData;
                 this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
                 this.xAxis.dataSource = this.chartData;
-                // console.log(this.tabularData);
             }
         };
         window.revealBridge.notifyExtensionIsReady();
 
     }
 
-    private onCalloutLabelUpdating(sender:IgcCalloutLayerComponent, e:IgcCalloutLabelUpdatingEventArgs)
-    {
-        if (e.item != null)
-        {
-            let value = parseFloat(e.item.value);
+
+    /**
+     * Calloutラベルが更新されるときに呼び出されるコールバック関数です。
+     * ラベルの値が数値である場合、カンマ区切りの形式でフォーマットします。
+     * @param sender - イベントの発生元であるIgcCalloutLayerComponentオブジェクト
+     * @param event - イベントの引数であるIgcCalloutLabelUpdatingEventArgsオブジェクト
+     */
+    private onCalloutLabelUpdating(sender: IgcCalloutLayerComponent, event: IgcCalloutLabelUpdatingEventArgs) {
+        if (event.item != null) {
+            let value = parseFloat(event.item.value);
             if (!isNaN(value)) {
-                e.label = value.toLocaleString(); // Format the number with commas
+                event.label = value.toLocaleString(); // 数値をカンマ区切りの形式でフォーマットする
             }
         }
     }
 
-    public onAssigningCategoryStyle = (
-        sender: IgcCategorySeriesComponent,
-        evt: IgcAssigningCategoryStyleEventArgs) => {
-        let items = evt.getItems(evt.startIndex, evt.endIndex);
+    /**
+     * カテゴリのスタイルを割り当てる際に呼び出されるコールバック関数です。
+     * チャートの各アイテムに対して処理を行います。
+     * チャートの複数選択がfalseの場合、アイテムのisSelectedプロパティをfalseに設定し、選択状態を解除します。
+     * チャートの複数選択がtrueの場合、選択されているチャートのスタイルを変更します。
+     * @param sender - イベントの発生元であるIgcCategorySeriesComponentオブジェクト
+     * @param event - イベントの引数であるIgcAssigningCategoryStyleEventArgsオブジェクト
+     */
+    public onAssigningCategoryStyle = (sender: IgcCategorySeriesComponent, event: IgcAssigningCategoryStyleEventArgs) => {
+        let items = event.getItems(event.startIndex, event.endIndex);
         for (let i = 0; i < items.length; i++) {
             if (!this.enableSelecting) {
                 items[i].isSelected = false;
             } else {
                 if (items[i].isSelected) {
-                    evt.strokeThickness = 5;
-                    evt.fill = "#3a6b8e";
+                    event.strokeThickness = 5;
+                    event.fill = "#3a6b8e";
                 }
             }
         }
     }
 
-    // public onPlotAreaMouseOver = (
-    //     sender: IgcSeriesViewerComponent,
-    //     evt:  IgcPlotAreaMouseEventArgs
-    // ) => {
-    //     if (evt) {
-    //         console.log(evt);
-    //     }
-    // }
-
     public onDrillUpClick = () => {
-        //console.log('Drill Up');
-        //console.log(this.dataNodeLayer, this.currentDataNodeLayer);
         const parentNode = this.findParentNode(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-        //console.log(parentNode);
         if (parentNode !== null) {
             this.currentDataNodeLayer = parentNode?.name;
             if (this.tabularData) {
@@ -222,11 +218,8 @@ export class SKNextColumnChart {
     }
 
     public onDrillDownClick = () => {
-        //console.log('Drill Down');
-        //console.log(this.dataNodeLayer, this.currentDataNodeLayer);
         const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
         const childNode = currentNode.children?.[0] as Node;
-        //console.log(childNode);
         if (childNode !== null) {
             this.currentDataNodeLayer = childNode?.name as string;
             if (this.tabularData) {
@@ -253,29 +246,34 @@ export class SKNextColumnChart {
         }
     }
 
-    public onMouseLeave = (
-        evt: MouseEvent
-    ) => {
-        if (evt) {
-            const toolTipElement = document.getElementById('CustomTooltip');
-            if (toolTipElement) {
-                toolTipElement.style.display = 'none';
-
+    /**
+     * マウスがチャートコンテナ要素から離れたときに呼び出されるコールバック関数です。
+     * イベントが発生した場合、カスタムツールチップの表示を非表示にします。
+     * @param event - マウスイベント
+     */
+    public onMouseLeave = ( event: MouseEvent ) => {
+        if (event) {
+            if (this.customTooltip) {
+                this.customTooltip.style.display = 'none';
             }
         }
     }
 
 
-    public onSeriesMouseLeftButtonUp = (
-        sender: IgcSeriesViewerComponent,
-        evt: IgcDataChartMouseButtonEventArgs
-    ) => {
+    /**
+     * シリーズビューアのマウスの左ボタンが離されたイベントを処理します。
+     * チャートの複数選択が有効な場合、chartData配列のisSelectedプロパティを更新します。
+     * 最後にnotifyVisualPropertiesChangedメソッドを呼び出して、チャートの外観を更新（onAssigningCategoryStyleを呼び出し）します。
+     * @param sender - イベントの発生元であるIgcSeriesViewerComponentオブジェクト
+     * @param event - イベントの引数であるIgcDataChartMouseButtonEventArgsオブジェクト
+     */
+    public onSeriesMouseLeftButtonUp = (sender: IgcSeriesViewerComponent, event: IgcDataChartMouseButtonEventArgs) => {
         if (this.enableSelecting) {
-            if (evt.item) {
-                evt.item.isSelected = !evt.item.isSelected;
+            if (event.item) {
+                event.item.isSelected = !event.item.isSelected;
                 this.chartData?.forEach((dataItem: any) => {
-                    if (dataItem.category === evt.item.category) {
-                        dataItem.isSelected = evt.item.isSelected;
+                    if (dataItem.category === event.item.category) {
+                        dataItem.isSelected = event.item.isSelected;
                     }
                 });
                 this.columnSeries.notifyVisualPropertiesChanged();
@@ -296,16 +294,9 @@ export class SKNextColumnChart {
         return item.category;
     }
 
-    // public onClick = (evt:MouseEvent) => {
-    //     console.log(evt);
-    //     evt.stopPropagation();
-    // }
-
     public onMouseEnter = (evt:MouseEvent) => {
         if (!this.enableSelecting && this.canDrillDown) {
-            const toolTipElement = document.getElementById('CustomTooltip');
             const worldPosition = this.columnSeries.toWorldPosition({ x: evt.clientX, y: evt.clientY });
-            // console.log(worldPosition);
 
             const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
             // console.log(currentNode);
@@ -321,17 +312,17 @@ export class SKNextColumnChart {
             }
 
             if (0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1) {
-                if (toolTipElement) {
+                if (this.customTooltip) {
                     const toolTipTitleElement = document.getElementById('tooltipTitle');
                     //const leftValue = 100 / this.columnSeries.dataSource.length;
                     //const itemIndex = this.columnSeries.getItemIndex({ x: worldPosition.x, y: worldPosition.y});
                     const Item = this.columnSeries.getItem({ x: worldPosition.x, y: worldPosition.y});
                     var x = evt.clientX;
-                    if (x + toolTipElement.offsetWidth > window.innerWidth) {
-                        x -= toolTipElement.offsetWidth;
+                    if (x + this.customTooltip.offsetWidth > window.innerWidth) {
+                        x -= this.customTooltip.offsetWidth;
                     }
-                    toolTipElement.style.left = x + 'px';
-                    toolTipElement.style.display = 'block';
+                    this.customTooltip.style.left = x + 'px';
+                    this.customTooltip.style.display = 'block';
                     if (toolTipTitleElement) {
                         if (this.canDrillDown) {
                             const dateObject = new Date(Item.category);
@@ -351,8 +342,8 @@ export class SKNextColumnChart {
                     }
                 }
             } else {
-                if (toolTipElement) {
-                    toolTipElement.style.display = 'none';
+                if (this.customTooltip) {
+                    this.customTooltip.style.display = 'none';
                 }
             }
         }
@@ -390,9 +381,8 @@ export class SKNextColumnChart {
     			if (enable)
     			{
     				this.enableSelecting = true;
-                    const toolTipElement = document.getElementById('CustomTooltip');
-                    if (toolTipElement) {
-                        toolTipElement.style.display = 'none';
+                    if (this.customTooltip) {
+                        this.customTooltip.style.display = 'none';
                     }
     			}
     			else
