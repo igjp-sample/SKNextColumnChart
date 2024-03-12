@@ -231,7 +231,10 @@ export class SKNextColumnChart {
             this.currentDataNodeLayer = childNode?.name as string;
             if (this.tabularData) {
                 this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
-                // console.log(this.chartData);
+                console.log(this.chartData, this.drillDown.getAttribute("drillTo"));
+                if (this.drillDown.getAttribute("drillTo") !== null) {
+                    this.chartData = this.chartData.filter((item: any) => item.category.startsWith(this.drillDown.getAttribute("drillTo")));
+                }
                 this.columnSeries.dataSource = this.chartData;
                 this.yAxis.maximumValue = this.increaseFirstDigit(this.findMaxValue(this.chartData));
                 this.xAxis.dataSource = this.chartData;
@@ -334,10 +337,13 @@ export class SKNextColumnChart {
                             const dateObject = new Date(Item.category);
                             if (this.currentDataNodeLayer === "Date") {
                                 toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月" + dateObject.getDate() + "日";
+                                this.drillDown.removeAttribute("drillTo");
                             } else if (this.currentDataNodeLayer === "Month") {
                                 toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月";
+                                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 7));
                             } else if (this.currentDataNodeLayer === "Years") {
                                 toolTipTitleElement.innerText = dateObject.getFullYear() + "年";
+                                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 4));
                             }
                         } else {
                             toolTipTitleElement.innerText = Item.category;
@@ -366,9 +372,17 @@ export class SKNextColumnChart {
                     alert("チャートが選択されていません。");
                 } else {
                     const selectedCategories = (this.chartData as { isSelected: boolean, category: string }[]).filter(item => item.isSelected === true).map(item => item.category);
-                    const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.category]));
-                    alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
-                    console.log(filteredData);
+                    console.log(this.tabularData, selectedCategories, this.category);
+                    if (this.canDrillDown) {
+                        console.log(this.currentDataNodeLayer);
+                        const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.currentDataNodeLayer]));
+                        alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
+                        console.log(filteredData);
+                    } else {
+                        const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.category]));
+                        alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
+                        console.log(filteredData);
+                    }
                 }
                 break;
             case "EnableSelecting":
