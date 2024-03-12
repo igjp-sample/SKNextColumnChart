@@ -58,58 +58,97 @@ declare global {
     }
 }
 
+/**
+ * ノードを表すインターフェースです。
+ */
 interface Node {
     id: string;
     name: string;
     children?: Node[]; // 再帰的な型定義で子ノードを持つ
 }
 
+// drillDownTypeプロパティの型定義
+type DrillDownType = 'Date' | 'UserDefined';
+
 export class SKNextColumnChart {
 
-    private chartData: any[] | undefined;
     private legend: IgcLegendComponent
     private toolbar: IgcToolbarComponent
     private chart: IgcDataChartComponent
     private xAxis: IgcCategoryXAxisComponent
     private yAxis: IgcNumericYAxisComponent
     private columnSeries: IgcColumnSeriesComponent
-    private crosshairLayer: IgcCrosshairLayerComponent
-    private calloutLayer: IgcCalloutLayerComponent
-    private _bind: () => void;
-    private tabularData: { [key: string]: any; }[] | undefined;
-    private category: string = "";
-    /**
-     * チャートの複数選択機能を有効にするかどうかを示すフラグです。
-     */
-    private enableSelecting: boolean = false;
-    private canDrillDown: boolean = false;
-    private dataNodeLayer!: Node;
-    private currentDataNodeLayer: string = "Date";
 
     private drillUp: HTMLElement;
     private drillDown: HTMLElement;
     private customTooltip: HTMLElement;
+    private tooltipTitle: HTMLElement;
+
+    private dataNodeLayer!: Node;
+
+    private _bind: () => void;
+
+    /**
+     * Revealから渡されるオリジナルのデータを保持するプロパティです。
+     * チャートの表示に利用するデータ以外も含むため、NEXT会員登録機能などで利用することができます。
+     */
+    private tabularData: { [key: string]: any; }[] | undefined;
+
+    /**
+     * チャートの表示を行うためのデータを保持するプロパティです。
+     * ドリルダウンの際は、このプロパティにを再集計してチャートを更新します。
+     */
+    private chartData: any[] | undefined;
+
+    /**
+     * チャートのcategoryXAxisに対応するカラム名を保持するプロパティです。
+     */
+    private category: string = "";
+
+    /**
+     * 集計対象のカラム名を保持するプロパティです。
+     */
+    private aggregationTargetColumn: string = "";
+
+    /**
+     * チャートの複数選択機能を有効にするかどうかを示すフラグです。
+     */
+    private enableSelecting: boolean = false;
+
+    /**
+     * ドリルダウン機能を有効にするかどうかを示すフラグです。
+     */
+    private canDrillDown: boolean = false;
+
+    /**
+     * ドリルダウンのタイプを表すプロパティです。
+     * ドリルダウンのタイプは、'Date' または 'UserDefined' のいずれかです。
+     */
+    private drillDownType: DrillDownType = 'Date';
+
+    private currentDataNodeLayer: string = "Date";
 
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
         this.onCalloutLabelUpdating = this.onCalloutLabelUpdating.bind(this);
-
-        var legend = this.legend = document.getElementById('Legend') as unknown as IgcLegendComponent;
-        var toolbar = this.toolbar = document.getElementById('Toolbar') as IgcToolbarComponent;
         this.toolbarToggleAction = this.toolbarToggleAction.bind(this);
+
+        var toolbar = this.toolbar = document.getElementById('Toolbar') as IgcToolbarComponent;
         var chart = this.chart = document.getElementById('Chart') as unknown as IgcDataChartComponent;
         var yAxis = this.yAxis = document.getElementById('yAxis') as unknown as IgcNumericYAxisComponent;
         var xAxis = this.xAxis = document.getElementById('xAxis') as unknown as IgcCategoryXAxisComponent;
-        var crosshairLayer = this.crosshairLayer = document.getElementById('crosshairLayer') as IgcCrosshairLayerComponent;
         var columnSeries = this.columnSeries = document.getElementById('ColumnSeries') as unknown as IgcColumnSeriesComponent;
-        var calloutLayer = this.calloutLayer = document.getElementById('CalloutLayer') as unknown as IgcCalloutLayerComponent;
         var chartContainer = document.getElementById('ChartContainer') as HTMLDivElement;
-        var drillUp = this.drillUp = document.getElementById('drill-up') as HTMLElement;
-        var drillDown = this.drillDown = document.getElementById('drill-down') as HTMLElement;
-        var customTooltip = this.customTooltip = document.getElementById('CustomTooltip') as HTMLElement;
+        var drillUp = this.drillUp = document.getElementById('DrillUp') as HTMLElement;
+        var drillDown = this.drillDown = document.getElementById('DrillDown') as HTMLElement;
+        var calloutLayer = document.getElementById('CalloutLayer') as unknown as IgcCalloutLayerComponent;
+        var crosshairLayer = document.getElementById('CrosshairLayer') as IgcCrosshairLayerComponent;
+        this.customTooltip = document.getElementById('CustomTooltip') as HTMLElement;
+        this.tooltipTitle = document.getElementById('TooltipTitle') as HTMLElement;
+        this.legend = document.getElementById('Legend') as unknown as IgcLegendComponent;
 
-        this.chart.highlightedValuesDisplayMode = 1;
         this._bind = () => {
+            // 主にチャート表現やイベントハンドラの初期設定を行っています。
             toolbar.target = this.chart;
             toolbar.onCommand = this.toolbarToggleAction;
             chart.legend = this.legend;
@@ -144,7 +183,8 @@ export class SKNextColumnChart {
                 this.category = columns[0].name;
                 this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name); //「sum of xxx」のような形式の文字列がRevealから渡されるため、最後の単語のみを取得します。
                 this.tabularData = this.combineColumnAndData(columns, incomingData.data);
-                this.chartData = this.aggregateDataByCategory(this.tabularData, this.category, columns[columns.length - 1].name);
+                this.aggregationTargetColumn = columns[columns.length - 1].name;
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.category, this.aggregationTargetColumn);
                 this.updateChart(this.chartData);
             }
         };
@@ -195,7 +235,7 @@ export class SKNextColumnChart {
         if (parentNode !== null) {
             this.currentDataNodeLayer = parentNode?.name;
             if (this.tabularData) {
-                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, this.aggregationTargetColumn);
                 this.updateChart(this.chartData);
             }
         }
@@ -210,8 +250,7 @@ export class SKNextColumnChart {
         if (childNode !== null) {
             this.currentDataNodeLayer = childNode?.name as string;
             if (this.tabularData) {
-                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, "Sum of Sales");
-                console.log(this.chartData, this.drillDown.getAttribute("drillTo"));
+                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, this.aggregationTargetColumn);
                 if (this.drillDown.getAttribute("drillTo") !== null) {
                     this.chartData = this.chartData.filter((item: any) => item.category.startsWith(this.drillDown.getAttribute("drillTo")));
                 }
@@ -235,7 +274,6 @@ export class SKNextColumnChart {
         }
     }
 
-
     /**
      * シリーズビューアのマウスの左ボタンが離されたイベントを処理します。
      * チャートの複数選択が有効な場合、chartData配列のisSelectedプロパティを更新します。
@@ -257,60 +295,82 @@ export class SKNextColumnChart {
         }
     }
 
+    /**
+     * 日付文字列をフォーマットする関数です。
+     * 日付の形式が YYYY-MM-DDThh:mm:ss に一致するかチェックします。
+     * 条件に一致する場合、日付を指定したフォーマットに変換して返します。
+     * 一致しない場合は、元の文字列をそのまま返します。
+     * @param item - フォーマットする日付文字列を含むオブジェクト
+     * @returns - フォーマットされた日付文字列または元の文字列
+     */
     public formatDateString(item: any): string {
-        // 日付の形式が YYYY-MM-DDThh:mm:ss に一致するかチェック
         const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
-        // 条件に一致する場合、T以前の部分だけを返す
         if (regex.test(item.category)) {
-            return item.category.split('T')[0];
+            const dateObject = new Date(item.category);
+            return dateObject.getFullYear() + "/" + (dateObject.getMonth() + 1) + "/" + dateObject.getDate(); // 必要に応じて日付のフォーマットを変更してください
         }
-        // それ以外の場合、元の文字列をそのまま返す
         return item.category;
     }
 
-    public onMouseEnter = (evt:MouseEvent) => {
-        if (!this.enableSelecting && this.canDrillDown) {
-            const worldPosition = this.columnSeries.toWorldPosition({ x: evt.clientX, y: evt.clientY });
+    /**
+     * マウスがチャートエリアに入ったときに呼び出されるコールバック関数です。
+     * ドリルダウンが有効である場合にのみカスタムツールチップを表示します。
+     * マウスの位置からツールチップの表示位置を設定します。
+     * チャートエリア内にいない場合、カスタムツールチップを非表示にします。
+     * チャートエリア内にいる場合、カスタムツールチップを表示し、ツールチップのタイトルをフォーマットします。
+     * @param event - マウスイベント
+     */
+    public onMouseEnter = (event: MouseEvent) => {
+        if (this.enableSelecting || !this.canDrillDown) return;
 
-            const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-            this.setDisplayStyles(currentNode);
+        const worldPosition = this.columnSeries.toWorldPosition({ x: event.clientX, y: event.clientY });
+        const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+        this.setDisplayStyles(currentNode);
 
-            if (0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1) {
-                if (this.customTooltip) {
-                    const toolTipTitleElement = document.getElementById('tooltipTitle');
-                    //const leftValue = 100 / this.columnSeries.dataSource.length;
-                    //const itemIndex = this.columnSeries.getItemIndex({ x: worldPosition.x, y: worldPosition.y});
-                    const Item = this.columnSeries.getItem({ x: worldPosition.x, y: worldPosition.y});
-                    var x = evt.clientX;
-                    if (x + this.customTooltip.offsetWidth > window.innerWidth) {
-                        x -= this.customTooltip.offsetWidth;
-                    }
-                    this.customTooltip.style.left = x + 'px';
-                    this.customTooltip.style.display = 'block';
-                    if (toolTipTitleElement) {
-                        if (this.canDrillDown) {
-                            const dateObject = new Date(Item.category);
-                            if (this.currentDataNodeLayer === "Date") {
-                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月" + dateObject.getDate() + "日";
-                                this.drillDown.removeAttribute("drillTo");
-                            } else if (this.currentDataNodeLayer === "Month") {
-                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年" + (dateObject.getMonth() + 1) + "月";
-                                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 7));
-                            } else if (this.currentDataNodeLayer === "Years") {
-                                toolTipTitleElement.innerText = dateObject.getFullYear() + "年";
-                                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 4));
-                            }
-                        } else {
-                            toolTipTitleElement.innerText = Item.category;
-                        }
-                    }
-                }
-            } else {
-                if (this.customTooltip) {
-                    this.customTooltip.style.display = 'none';
-                }
+        const isWithinChartArea = 0 < worldPosition.x && worldPosition.x < 1 && 0 < worldPosition.y && worldPosition.y < 1;
+        if (!isWithinChartArea) {
+            if (this.customTooltip) {
+                this.customTooltip.style.display = 'none';
+            }
+            return;
+        }
+
+        if (this.customTooltip) {
+            const Item = this.columnSeries.getItem({ x: worldPosition.x, y: worldPosition.y});
+            var x = event.clientX;
+            if (x + this.customTooltip.offsetWidth > window.innerWidth) {
+                x -= this.customTooltip.offsetWidth;
+            }
+            this.customTooltip.style.left = x + 'px';
+            this.customTooltip.style.display = 'block';
+            if (this.tooltipTitle) {
+                this.tooltipTitle.innerText = this.formatTooltipTitle(Item);
             }
         }
+    }
+
+    private formatTooltipTitle(Item: any): string {
+        if (!this.canDrillDown) return Item.category;
+
+        if (this.drillDownType === "Date") {
+            const dateObject = new Date(Item.category);
+            if (this.currentDataNodeLayer === "Date") {
+                this.drillDown.removeAttribute("drillTo");
+                return `${dateObject.getFullYear()}年${dateObject.getMonth() + 1}月${dateObject.getDate()}日`;
+            } else if (this.currentDataNodeLayer === "Month") {
+                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 7));
+                return `${dateObject.getFullYear()}年${dateObject.getMonth() + 1}月`;
+            } else if (this.currentDataNodeLayer === "Years") {
+                this.drillDown.setAttribute("drillTo", Item.category.slice(0, 4));
+                return `${dateObject.getFullYear()}年`;
+            }
+        }
+        //TODO: ユーザー定義のドリルダウンの場合の処理を追加してください。
+        if (this.drillDownType === "UserDefined") {
+           // do something
+        }
+
+        return ""; // Add a default return value
     }
 
     /**

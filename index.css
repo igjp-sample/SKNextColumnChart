@@ -346,7 +346,7 @@ table {
     font-family: 'Titillium Web', Verdana, Tahoma, sans-serif;
 }
 
-.tooltipTitle {
+.TooltipTitle {
     display: block;
     color: Black;
     font-weight: bold;
@@ -447,7 +447,6 @@ table {
     justify-content: flex-end;
     align-items: flex-end;
 }
-
 .custom-tooltip {
     background-color: rgb(255, 255, 255);
     border-radius: 6px;
@@ -466,7 +465,7 @@ table {
     padding: 0;
     font: 400 12px "Roboto";
 }
-#tooltipTitle {
+#TooltipTitle {
     font: 500 14px "Roboto";
     padding: 0 14px .5em 14px;
 }
@@ -484,7 +483,7 @@ table {
     background-color: #f5f5f5;
     cursor: pointer;
 }
-.dli-arrow-up {
+.dlill-arrow-up {
     display: inline-block;
     vertical-align: middle;
     color: #333;
@@ -494,7 +493,7 @@ table {
     height: 1em;
     margin-right: 1em;
 }
-.dli-arrow-up::before {
+.dlill-arrow-up::before {
     content: '';
     width: 0.65em;
     height: 0.65em;
@@ -508,7 +507,7 @@ table {
     right: 50%;
     box-sizing: border-box;
 }
-.dli-arrow-up::after {
+.dlill-arrow-up::after {
     content: '';
     width: 0.65em;
     height: 0.65em;
@@ -522,7 +521,7 @@ table {
     right: 50%;
     box-sizing: border-box;
 }
-.dli-arrow-down {
+.dlill-arrow-down {
     display: inline-block;
     vertical-align: middle;
     color: #333;
@@ -532,7 +531,7 @@ table {
     height: 1em;
     margin-right: 1em;
 }
-.dli-arrow-down::before {
+.dlill-arrow-down::before {
     content: '';
     width: 0.65em;
     height: 0.65em;
@@ -546,7 +545,7 @@ table {
     bottom: 0.05em;
     box-sizing: border-box;
 }
-.dli-arrow-down::after {
+.dlill-arrow-down::after {
     content: '';
     width: 0.65em;
     height: 0.65em;
