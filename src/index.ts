@@ -8,7 +8,7 @@ import {
     IgcLegendModule, IgcDataChartCoreModule, IgcDataChartCategoryModule,
     IgcDataChartCategoryCoreModule, IgcDataChartInteractivityModule, IgcDataChartAnnotationModule,
     IgcDataChartVerticalCategoryModule, IgcAnnotationLayerProxyModule, IgcDataChartToolbarModule,
-    IgcDataChartCategoryTrendLineModule, IgcValueOverlayModule
+    IgcDataChartCategoryTrendLineModule, IgcValueOverlayModule, ThumbRangePosition
 } from '@infragistics/igniteui-webcomponents-charts';
 import {
     IgcToolbarModule, IgcToolActionLabelModule
@@ -65,6 +65,11 @@ interface Node {
     id: string;
     name: string;
     children?: Node[]; // 再帰的な型定義で子ノードを持つ
+}
+
+interface ColumnData {
+    name: string;
+    type: number;
 }
 
 // drillDownTypeプロパティの型定義
@@ -126,7 +131,32 @@ export class SKNextColumnChart {
      */
     private drillDownType: DrillDownType = 'Date';
 
-    private currentDataNodeLayer: string = "Date";
+    private currentDataNodeLayer: string = '';
+
+    // ユーザー定義のドリルダウン機能をテストする際にtrueに設定します。本番では使用しないでください。
+    private isUserDefineDrilldownTest: boolean = false;
+
+    /**
+     * このプロパティは、ドリルダウン機能によってチャートの階層を制御するために使用されます。
+     * categoryXAxisの対象（Revealチャートエディターの「行」フィールドの先頭データ）がDate型の場合、こちらを使用します。
+     * Date型利用時の階層を変更したい場合、こちらを変更してください。
+     */
+    readonly dateNodeLayer: Node = {
+        "id": "1",
+        "name": "Years",
+        "children": [
+            {
+                "id": "2",
+                "name": "Month",
+                "children": [
+                    {
+                        "id": "3",
+                        "name": "Date"
+                    }
+                ]
+            }
+        ]
+    };
 
     readonly mouseMoveEvent = new MouseEvent('mousemove', { bubbles: true, cancelable: true });
 
@@ -185,6 +215,7 @@ export class SKNextColumnChart {
                 this.category = columns[0].name;
                 this.columnSeries.title = this.getLastWordFromString(columns[columns.length - 1].name); //「sum of xxx」のような形式の文字列がRevealから渡されるため、最後の単語のみを取得します。
                 this.tabularData = this.combineColumnAndData(columns, incomingData.data);
+                console.log(this.tabularData);
                 this.aggregationTargetColumn = columns[columns.length - 1].name;
                 this.chartData = this.aggregateDataByCategory(this.tabularData, this.category, this.aggregationTargetColumn);
                 this.updateChart(this.chartData);
@@ -249,13 +280,18 @@ export class SKNextColumnChart {
 
     public onDrillDownClick = () => {
         const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
-        const childNode = currentNode.children?.[0] as Node;
-        if (childNode !== null) {
-            this.currentDataNodeLayer = childNode?.name as string;
-            if (this.tabularData) {
-                this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, this.aggregationTargetColumn);
-                if (this.drillDown.getAttribute("drillTo") !== null) {
-                    this.chartData = this.chartData.filter((item: any) => item.category.startsWith(this.drillDown.getAttribute("drillTo")));
+        const childNode = currentNode?.children?.[0] as Node;
+        if (childNode) {
+            this.currentDataNodeLayer = childNode.name as string;
+            if (this.tabularData && this.drillDown.getAttribute("drillTo") !== null) {
+                if (this.drillDownType === "Date") {
+                    this.chartData = this.aggregateDataByCategory(this.tabularData, this.currentDataNodeLayer, this.aggregationTargetColumn)
+                        .filter((item: any) => item.category.startsWith(this.drillDown.getAttribute("drillTo")));
+                }
+                if (this.drillDownType === "UserDefined") {
+                    const parentNode = this.findParentNode(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+                    const filteredTabularData = this.tabularData.filter((item: any) => item[parentNode.name] === this.drillDown.getAttribute("drillTo"));
+                    this.chartData = this.aggregateDataByCategory(filteredTabularData, this.currentDataNodeLayer, this.aggregationTargetColumn);
                 }
                 this.updateChart(this.chartData);
             }
@@ -371,7 +407,13 @@ export class SKNextColumnChart {
         }
         //TODO: ユーザー定義のドリルダウンの場合の処理を追加してください。
         if (this.drillDownType === "UserDefined") {
-           // do something
+            const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
+            if (!this.isBottomLevel(currentNode)) {
+                this.drillDown.setAttribute("drillTo", Item.category);
+            } else {
+                this.drillDown.removeAttribute("drillTo");
+            }
+            return Item.category;
         }
 
         return ""; // Add a default return value
@@ -385,26 +427,23 @@ export class SKNextColumnChart {
         this.toolbar.registerIconFromText("CustomCollection", "NextIcon", icon);
     }
 
+    /**
+     * ツールバーのトグルアクションを処理する関数です。
+     * @param sender - イベントの発生元オブジェクト
+     * @param args - イベント引数
+     */
     public toolbarToggleAction(sender: any, args: IgcToolCommandEventArgs): void {
         switch (args.command.commandId)
         {
-            case "GetSelectedData":
+            case "GetSelectedData": // NEXT会員登録機能メニューがクリックされた場合
                 const isAllFalse = (this.chartData as { isSelected: boolean }[]).every(item => item.isSelected === false);
                 if (isAllFalse) {
                     alert("チャートが選択されていません。");
                 } else {
-                    const selectedCategories = (this.chartData as { isSelected: boolean, category: string }[]).filter(item => item.isSelected === true).map(item => item.category);
-                    console.log(this.tabularData, selectedCategories, this.category);
-                    if (this.canDrillDown) {
-                        console.log(this.currentDataNodeLayer);
-                        const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.currentDataNodeLayer]));
-                        alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
-                        console.log(filteredData);
-                    } else {
-                        const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[this.category]));
-                        alert("以下のデータが選択されています。\n" + JSON.stringify(filteredData, null, "  "));
-                        console.log(filteredData);
-                    }
+                    const selectedCategories = (this.chartData as { isSelected: boolean, category: string }[]).filter(item => item.isSelected === true).map(item => item.category); // 選択されたチャートのカテゴリを取得
+                    const filterProperty = this.canDrillDown ? this.currentDataNodeLayer : this.category; // ドリルダウンが有効な場合、ドリルダウンの階層に応じたプロパティを取得します。
+                    const filteredData = this.tabularData?.filter(item => selectedCategories.includes(item[filterProperty]));
+                    console.log(filteredData);
                 }
                 break;
             case "EnableSelecting": // チャート選択モードメニューがクリックされた場合
@@ -432,44 +471,35 @@ export class SKNextColumnChart {
         this.xAxis.dataSource = chartData;
     }
 
+    /**
+     * カラムとデータを結合する関数です。Revealから取得したデータを整形するために使用します。
+     * @param fields - カラムのフィールド情報を含むオブジェクト
+     * @param data - 結合するデータ配列
+     * @returns - 結合されたデータ配列
+     */
     private combineColumnAndData(fields: { [x: string]: {
         type: number; name: string | number;
     }; }, data: any[]) {
         var transformFields = Object.values(fields);
-        var transformDateData = data;
-        if(fields[0].type == 3) {
-            this.dataNodeLayer = {
-                id:"1",
-                name: "Years",
-                children: [
-                    {
-                        id: "2",
-                        name: "Month",
-                        children: [
-                            {
-                                id: "3",
-                                name: "Date",
-                            }
-                        ]
-                    }
-                ]
-            };
-
+        var transformedData = data;
+        if(fields[0].type == 3) { // categoryXAxisがDate型の場合
+            this.dataNodeLayer = this.dateNodeLayer;
             this.canDrillDown = true;
-            var insertMonth = {
-                "name": "Month",
-                "type": 4
-            };
-            var insertYears = {
-                "name": "Years",
-                "type": 4
-            };
-            transformFields.splice(1, 0, insertMonth);
-            transformFields.splice(2, 0, insertYears);
-            transformDateData = this.transformDateData(data);
+            this.currentDataNodeLayer = "Date";
+            this.insertDrilldownLayerNamesIntoColumn(this.dateNodeLayer, transformFields as { type: number; name: string; }[]);
+            transformedData = this.transformDateData(data);
+        } else if (this.isUserDefineDrilldownTest) {
+            // ユーザー定義のドリルダウン機能をテストするための処理を追加してください。
+            this.canDrillDown = true;
+            this.drillDownType = 'UserDefined';
+            this.currentDataNodeLayer = transformFields[0].name as string; // Revealチャートエディターの「行」フィールドの先頭データを初期ノードレイヤーとして設定します。
+            /**
+             * 暫定的に、Revealチャートエディターの「行」フィールドの先頭と２つ目のデータをそれぞれ親ノードと子ノードとして設定します。
+             */
+            var drillDownNamesArray = [transformFields[0].name as string, transformFields[1].name as string];
+            this.dataNodeLayer = this.createNodeLayer(drillDownNamesArray);
         }
-        //console.log(transformFields, transformDateData);
-        return transformDateData.map(record => {
+        return transformedData.map(record => {
             const combinedRecord: { [key: string]: any } = {}; // Add index signature
             record.forEach((value: any, index: string | number) => {
                 combinedRecord[transformFields[Number(index)].name] = value;
@@ -491,6 +521,22 @@ export class SKNextColumnChart {
             ];
         });
     }
+
+    private insertDrilldownLayerNamesIntoColumn = ( node: Node, columnData: ColumnData[] ): void => {
+        const namesToInsert: string[] = [];
+        const collectNames = (data: Node) => {
+            if (data.children && data.children.length > 0) {
+                namesToInsert.push(data.name);
+                data.children.forEach(collectNames);
+            }
+        };
+        collectNames(node);
+        namesToInsert.reverse().forEach((name, index) => {
+            if (index + 1 < columnData.length) {
+                columnData.splice(index + 1, 0, { "name": name, "type": 4 });
+            }
+        });
+    };
 
     /**
      * カテゴリごとにデータを集計します。
@@ -561,6 +607,22 @@ export class SKNextColumnChart {
     // = ドリルダウン機能有効時における、ノードレイヤーの操作関連メソッドです。
     // ==================================================================
 
+    private createNodeLayer (names: string[]): Node {
+        let rootNode: Node = { id: "1", name: names[0] };
+        let currentNode = rootNode;
+
+        for (let i = 1; i < names.length; i++) {
+          const newNode: Node = { id: (i + 1).toString(), name: names[i] };
+          if (!currentNode.children) {
+            currentNode.children = [];
+          }
+          currentNode.children.push(newNode);
+          currentNode = newNode;
+        }
+
+        return rootNode;
+    }
+
     /**
      * 文字列から最後の単語を取得します。
      * @param inputString - 最後の単語を取得する対象の文字列
@@ -616,14 +678,21 @@ export class SKNextColumnChart {
         return null;
     }
 
+    /**
+     * 指定されたノードの親ノードを検索します。
+     * @param node - 検索を開始するノード
+     * @param targetName - 検索する親ノードの名前
+     * @param parent - 再帰的な呼び出しのための親ノード
+     * @returns - 検索された親ノード、見つからない場合はnull
+     */
     private findParentNode<T>(node: Node, targetName: string, parent: Node | null = null): Node | null {
         // 子ノードを探索
         if (node.children) {
           for (const child of node.children) {
-            // 指定されたIDのノードを見つけた場合、その親ノードを返す
+            // 指定された名前のノードを見つけた場合、その親ノードを返す
             if (child.name === targetName) {
-                if (parent === null) {
-                    return this.findNodeByName(node, "Years");
+                if (parent === null) { // 親ノードがない場合は、その最上位のノードを返す
+                    return this.findNodeByName(node, this.dataNodeLayer.name);
                 } else {
                     return parent;
                 }
@@ -635,9 +704,9 @@ export class SKNextColumnChart {
             }
           }
         }
-        // 指定されたIDのノードまたはその親ノードが見つからない場合
+        // 指定された名前のノードまたはその親ノードが見つからない場合
         return null;
-      }
+    }
 
 }
 
