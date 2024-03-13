@@ -128,6 +128,8 @@ export class SKNextColumnChart {
 
     private currentDataNodeLayer: string = "Date";
 
+    readonly mouseMoveEvent = new MouseEvent('mousemove', { bubbles: true, cancelable: true });
+
     constructor() {
         this.onAssigningCategoryStyle = this.onAssigningCategoryStyle.bind(this);
         this.onCalloutLabelUpdating = this.onCalloutLabelUpdating.bind(this);
@@ -242,6 +244,7 @@ export class SKNextColumnChart {
         this.columnSeries.notifyVisualPropertiesChanged();
         const currentNode = this.findNodeByName(this.dataNodeLayer, this.currentDataNodeLayer) as Node;
         this.setDisplayStyles(currentNode);
+        this.chart.dispatchEvent(this.mouseMoveEvent);
     }
 
     public onDrillDownClick = () => {
@@ -259,6 +262,7 @@ export class SKNextColumnChart {
         }
         this.columnSeries.notifyVisualPropertiesChanged();
         this.setDisplayStyles(currentNode);
+        this.chart.dispatchEvent(this.mouseMoveEvent);
     }
 
     /**
